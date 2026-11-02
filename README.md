@@ -18,7 +18,7 @@ Android-приложение Tusumba для посетителей и орган
 
 ## Стек
 
-Kotlin, Jetpack Compose, Retrofit + kotlinx.serialization. Клиент API генерируется из OpenAPI.
+Kotlin, Jetpack Compose, Retrofit + kotlinx.serialization. Клиент API генерируется из OpenAPI. В качестве DI выбран Hilt.
 
 ## Запуск
 
