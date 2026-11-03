@@ -18,17 +18,17 @@ class AuthViewModel @Inject constructor(
         private set
 
     suspend fun signIn(contact: String, password: String): AuthResult =
-        repository.signIn(contact, password).recordSession()
+        recordSession(repository.signIn(contact, password))
 
     suspend fun register(contact: String, password: String): AuthResult =
-        repository.register(contact, password).recordSession()
+        recordSession(repository.register(contact, password))
 
     fun signOut() {
         user = null
     }
 
-    private fun AuthResult.recordSession(): AuthResult {
-        if (this is AuthResult.Success) user = this.user
-        return this
+    private fun recordSession(result: AuthResult): AuthResult {
+        if (result is AuthResult.Success) user = result.user
+        return result
     }
 }
