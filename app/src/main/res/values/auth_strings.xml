@@ -1,0 +1,24 @@
+<resources>
+    <string name="auth_back">Назад</string>
+    <string name="auth_sign_in_title">Вход</string>
+    <string name="auth_register_title">Регистрация</string>
+    <string name="auth_name">Имя</string>
+    <string name="auth_email">Электронная почта</string>
+    <string name="auth_password">Пароль</string>
+    <string name="auth_password_confirmation">Повторите пароль</string>
+    <string name="auth_sign_in">Войти</string>
+    <string name="auth_register">Зарегистрироваться</string>
+    <string name="auth_to_sign_in">Уже есть аккаунт? Войти</string>
+    <string name="auth_to_register">Нет аккаунта? Зарегистрироваться</string>
+    <string name="auth_show_password">Показать</string>
+    <string name="auth_hide_password">Скрыть</string>
+    <string name="auth_required">Обязательное поле</string>
+    <string name="auth_invalid_email">Введите корректный адрес электронной почты</string>
+    <string name="auth_short_password">Пароль должен содержать не менее 8 символов</string>
+    <string name="auth_password_mismatch">Пароли не совпадают</string>
+    <string name="auth_invalid_credentials">Неверная электронная почта или пароль</string>
+    <string name="auth_email_registered">Этот адрес электронной почты уже зарегистрирован</string>
+    <string name="profile_title">Профиль</string>
+    <string name="profile_guest">Войдите в аккаунт, чтобы открыть личный кабинет</string>
+    <string name="profile_sign_out">Выйти из аккаунта</string>
+</resources>

@@ -5,19 +5,27 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import com.example.tusumba.R
+import com.example.tusumba.data.auth.AuthUser
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
-    onBackClick: () -> Unit
+    user: AuthUser?,
+    onBackClick: () -> Unit,
+    onSignIn: () -> Unit,
+    onSignOut: () -> Unit
 ) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Профиль") },
+                title = { Text(stringResource(R.string.profile_title)) },
                 navigationIcon = {
                     TextButton(onClick = onBackClick) {
-                        Text("Назад")
+                        Text(stringResource(R.string.auth_back))
                     }
                 }
             )
@@ -26,11 +34,23 @@ fun ProfileScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
-            verticalArrangement = Arrangement.Center,
+                .padding(padding)
+                .padding(horizontal = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Личный кабинет (Заглушка)")
+            if (user == null) {
+                Text(stringResource(R.string.profile_guest), textAlign = TextAlign.Center)
+                Button(onClick = onSignIn) {
+                    Text(stringResource(R.string.auth_sign_in))
+                }
+            } else {
+                Text(user.name, style = MaterialTheme.typography.headlineSmall)
+                Text(user.email)
+                OutlinedButton(onClick = onSignOut) {
+                    Text(stringResource(R.string.profile_sign_out))
+                }
+            }
         }
     }
 }
