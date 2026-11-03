@@ -213,10 +213,14 @@ private fun PasswordVisibilityButton(visible: Boolean, enabled: Boolean, onClick
     val description = stringResource(
         if (visible) R.string.auth_hide_password_description else R.string.auth_show_password_description
     )
-    TextButton(onClick = onClick, enabled = enabled) {
+    TextButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier.semantics { contentDescription = description }
+    ) {
         Text(
             text = stringResource(action),
-            modifier = Modifier.clearAndSetSemantics { contentDescription = description }
+            modifier = Modifier.clearAndSetSemantics {}
         )
     }
 }
