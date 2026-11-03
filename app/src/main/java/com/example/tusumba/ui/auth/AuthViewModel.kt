@@ -17,17 +17,18 @@ class AuthViewModel @Inject constructor(
     var user by mutableStateOf<AuthUser?>(null)
         private set
 
-    suspend fun authenticate(name: String?, email: String, password: String): AuthResult {
-        val result = if (name == null) {
-            repository.signIn(email, password)
-        } else {
-            repository.register(name, email, password)
-        }
-        if (result is AuthResult.Success) user = result.user
-        return result
-    }
+    suspend fun signIn(contact: String, password: String): AuthResult =
+        repository.signIn(contact, password).recordSession()
+
+    suspend fun register(contact: String, password: String): AuthResult =
+        repository.register(contact, password).recordSession()
 
     fun signOut() {
         user = null
+    }
+
+    private fun AuthResult.recordSession(): AuthResult {
+        if (this is AuthResult.Success) user = this.user
+        return this
     }
 }

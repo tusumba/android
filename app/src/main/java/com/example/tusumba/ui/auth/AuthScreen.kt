@@ -1,6 +1,5 @@
 package com.example.tusumba.ui.auth
 
-import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,8 +28,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.error
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -44,40 +48,29 @@ internal fun AuthScreen(
     isRegistration: Boolean,
     onBackClick: () -> Unit,
     onSwitchMode: () -> Unit,
-    onAuthenticate: suspend (name: String?, email: String, password: String) -> AuthResult,
+    onAuthenticate: suspend (contact: String, password: String) -> AuthResult,
     onAuthenticated: () -> Unit
 ) {
-    var name by rememberSaveable { mutableStateOf("") }
-    var email by rememberSaveable { mutableStateOf("") }
+    var contact by rememberSaveable { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var confirmation by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
     var attemptedSubmit by remember { mutableStateOf(false) }
     var isSubmitting by remember { mutableStateOf(false) }
     var submitError by remember { mutableStateOf<AuthResult?>(null) }
     val focusManager = LocalFocusManager.current
     val scope = rememberCoroutineScope()
 
-    fun validate() = if (isRegistration) {
-        validateRegistration(name, email, password, confirmation)
-    } else {
-        validateSignIn(email, password)
-    }
-
     fun submit() {
         if (isSubmitting) return
         attemptedSubmit = true
         submitError = null
-        if (validate().isNotEmpty()) return
+        if (validateAuthForm(contact, password).isNotEmpty()) return
 
         isSubmitting = true
         focusManager.clearFocus()
         scope.launch {
             try {
-                val result = onAuthenticate(
-                    name.trim().takeIf { isRegistration },
-                    email.trim(),
-                    password
-                )
+                val result = onAuthenticate(contact.trim(), password)
                 if (result is AuthResult.Success) {
                     onAuthenticated()
                 } else {
@@ -89,14 +82,26 @@ internal fun AuthScreen(
         }
     }
 
-    val errors = if (attemptedSubmit) validate() else emptyMap()
+    val errors = if (attemptedSubmit) validateAuthForm(contact, password) else emptyMap()
+    val contactAlreadyRegistered = submitError == AuthResult.ContactAlreadyRegistered
+    val contactMessage = when {
+        contactAlreadyRegistered -> stringResource(R.string.auth_contact_registered)
+        errors[AuthField.Contact] == AuthFieldError.InvalidContact ->
+            stringResource(R.string.auth_invalid_contact)
+        else -> null
+    }
+    val formError = when {
+        submitError == AuthResult.InvalidCredentials -> R.string.auth_invalid_credentials
+        submitError == AuthResult.RegistrationUnavailable -> R.string.auth_registration_unavailable
+        AuthFieldError.Required in errors.values -> R.string.auth_required
+        else -> null
+    }
     val title = if (isRegistration) R.string.auth_register_title else R.string.auth_sign_in_title
     val action = if (isRegistration) R.string.auth_register else R.string.auth_sign_in
-    val switchAction = if (isRegistration) R.string.auth_to_sign_in else R.string.auth_to_register
-    val emailError = if (submitError == AuthResult.EmailAlreadyRegistered) {
-        R.string.auth_email_registered
-    } else {
-        errors[AuthField.Email].message()
+    val switchAction = when {
+        contactAlreadyRegistered -> R.string.auth_sign_in
+        isRegistration -> R.string.auth_to_sign_in
+        else -> R.string.auth_to_register
     }
 
     Column(modifier = Modifier.fillMaxSize().imePadding()) {
@@ -125,57 +130,60 @@ internal fun AuthScreen(
                     modifier = Modifier.padding(bottom = 8.dp),
                     style = MaterialTheme.typography.headlineMedium
                 )
-                if (isRegistration) {
-                    AuthFieldInput(
-                        value = name,
-                        onValueChange = { name = it },
-                        label = R.string.auth_name,
-                        error = errors[AuthField.Name].message(),
-                        enabled = !isSubmitting,
-                        keyboardOptions = KeyboardOptions(
-                            capitalization = KeyboardCapitalization.Words,
-                            imeAction = ImeAction.Next
-                        )
-                    )
-                }
-                AuthFieldInput(
-                    value = email,
+                OutlinedTextField(
+                    value = contact,
                     onValueChange = {
-                        email = it
+                        contact = it
                         submitError = null
                     },
-                    label = R.string.auth_email,
-                    error = emailError,
+                    modifier = Modifier.fillMaxWidth().semantics {
+                        if (contactMessage != null) error(contactMessage)
+                    },
                     enabled = !isSubmitting,
+                    label = { Text(stringResource(R.string.auth_contact)) },
+                    supportingText = if (contactMessage == null) null else {
+                        { Text(contactMessage) }
+                    },
+                    isError = AuthField.Contact in errors || contactAlreadyRegistered,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Email,
                         imeAction = ImeAction.Next
-                    )
+                    ),
+                    singleLine = true
                 )
-                PasswordInput(
+                OutlinedTextField(
                     value = password,
                     onValueChange = {
                         password = it
-                        submitError = null
+                        if (!contactAlreadyRegistered) submitError = null
                     },
-                    label = R.string.auth_password,
-                    error = errors[AuthField.Password].message(),
+                    modifier = Modifier.fillMaxWidth(),
                     enabled = !isSubmitting,
-                    onDone = if (isRegistration) null else ::submit
+                    label = { Text(stringResource(R.string.auth_password)) },
+                    trailingIcon = {
+                        PasswordVisibilityButton(
+                            visible = passwordVisible,
+                            enabled = !isSubmitting,
+                            onClick = { passwordVisible = !passwordVisible }
+                        )
+                    },
+                    isError = AuthField.Password in errors,
+                    visualTransformation = if (passwordVisible) {
+                        VisualTransformation.None
+                    } else {
+                        PasswordVisualTransformation()
+                    },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(onDone = { submit() }),
+                    singleLine = true
                 )
-                if (isRegistration) {
-                    PasswordInput(
-                        value = confirmation,
-                        onValueChange = { confirmation = it },
-                        label = R.string.auth_password_confirmation,
-                        error = errors[AuthField.PasswordConfirmation].message(),
-                        enabled = !isSubmitting,
-                        onDone = ::submit
-                    )
-                }
-                if (submitError == AuthResult.InvalidCredentials) {
+                if (formError != null) {
                     Text(
-                        text = stringResource(R.string.auth_invalid_credentials),
+                        text = stringResource(formError),
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodyMedium
                     )
@@ -200,69 +208,15 @@ internal fun AuthScreen(
 }
 
 @Composable
-private fun PasswordInput(
-    value: String,
-    onValueChange: (String) -> Unit,
-    @StringRes label: Int,
-    @StringRes error: Int?,
-    enabled: Boolean,
-    onDone: (() -> Unit)?
-) {
-    var visible by remember { mutableStateOf(false) }
-    AuthFieldInput(
-        value = value,
-        onValueChange = onValueChange,
-        label = label,
-        error = error,
-        enabled = enabled,
-        keyboardOptions = KeyboardOptions(
-            keyboardType = KeyboardType.Password,
-            imeAction = if (onDone == null) ImeAction.Next else ImeAction.Done
-        ),
-        keyboardActions = KeyboardActions(onDone = { onDone?.invoke() }),
-        transformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
-        trailingIcon = {
-            TextButton(onClick = { visible = !visible }, enabled = enabled) {
-                val action = if (visible) R.string.auth_hide_password else R.string.auth_show_password
-                Text(stringResource(action))
-            }
-        }
+private fun PasswordVisibilityButton(visible: Boolean, enabled: Boolean, onClick: () -> Unit) {
+    val action = if (visible) R.string.auth_hide_password else R.string.auth_show_password
+    val description = stringResource(
+        if (visible) R.string.auth_hide_password_description else R.string.auth_show_password_description
     )
-}
-
-@Composable
-private fun AuthFieldInput(
-    value: String,
-    onValueChange: (String) -> Unit,
-    @StringRes label: Int,
-    @StringRes error: Int?,
-    enabled: Boolean,
-    keyboardOptions: KeyboardOptions,
-    keyboardActions: KeyboardActions = KeyboardActions.Default,
-    transformation: VisualTransformation = VisualTransformation.None,
-    trailingIcon: (@Composable () -> Unit)? = null
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        modifier = Modifier.fillMaxWidth(),
-        enabled = enabled,
-        label = { Text(stringResource(label)) },
-        trailingIcon = trailingIcon,
-        supportingText = if (error == null) null else { { Text(stringResource(error)) } },
-        isError = error != null,
-        visualTransformation = transformation,
-        keyboardOptions = keyboardOptions,
-        keyboardActions = keyboardActions,
-        singleLine = true
-    )
-}
-
-@StringRes
-private fun AuthFieldError?.message(): Int? = when (this) {
-    AuthFieldError.Required -> R.string.auth_required
-    AuthFieldError.InvalidEmail -> R.string.auth_invalid_email
-    AuthFieldError.PasswordTooShort -> R.string.auth_short_password
-    AuthFieldError.PasswordMismatch -> R.string.auth_password_mismatch
-    null -> null
+    TextButton(onClick = onClick, enabled = enabled) {
+        Text(
+            text = stringResource(action),
+            modifier = Modifier.clearAndSetSemantics { contentDescription = description }
+        )
+    }
 }

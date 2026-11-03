@@ -1,26 +1,42 @@
 package com.example.tusumba.ui.auth
 
+import com.example.tusumba.data.auth.normalizeAuthContact
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AuthValidationTest {
     @Test
-    fun signInRequiresEmailAndPassword() {
+    fun requiresContactAndPassword() {
         assertEquals(
-            mapOf(AuthField.Email to AuthFieldError.Required, AuthField.Password to AuthFieldError.Required),
-            validateSignIn(" \t", " \t")
+            mapOf(AuthField.Contact to AuthFieldError.Required, AuthField.Password to AuthFieldError.Required),
+            validateAuthForm(" \t", " \t")
         )
     }
 
     @Test
-    fun signInAcceptsTrimmedEmailAndAnyNonblankPassword() {
-        assertTrue(validateSignIn("  user.name+test@sub.example.com  ", "x").isEmpty())
+    fun acceptsEmailOrPhoneWithAnyNonblankPassword() {
+        assertTrue(validateAuthForm("  User.Name+Test@Sub.Example.com  ", "x").isEmpty())
+        assertTrue(validateAuthForm("+7 (999) 123-45-67", "x").isEmpty())
     }
 
     @Test
-    fun signInRejectsMalformedEmail() {
-        val invalidAddresses = listOf(
+    fun normalizesEmailAndPhoneFormatting() {
+        assertEquals(
+            "user.name+test@sub.example.com",
+            normalizeAuthContact("  User.Name+Test@Sub.Example.com  ")
+        )
+        assertEquals("+79991234567", normalizeAuthContact("+7 (999) 123-45-67"))
+        assertEquals("+79991234567", normalizeAuthContact("8 999 123 45 67"))
+        assertEquals("+79991234567", normalizeAuthContact("79991234567"))
+        assertEquals("+442079460000", normalizeAuthContact("+44 (20) 7946-0000"))
+        assertEquals("02079460000", normalizeAuthContact("020 7946 0000"))
+    }
+
+    @Test
+    fun rejectsMalformedEmailAndPhone() {
+        val longLocalPart = "x".repeat(65)
+        val invalidContacts = listOf(
             "user.example.com",
             "user@localhost",
             "user@@example.com",
@@ -29,35 +45,23 @@ class AuthValidationTest {
             "user name@example.com",
             "user@-example.com",
             "user@example..com",
-            "${"x".repeat(65)}@example.com"
+            "$longLocalPart@example.com",
+            "1234567",
+            "1234567890123456",
+            "++79991234567",
+            "+09991234567",
+            "+7 (999 123-45-67",
+            "+7 999 123--45-67",
+            "+7 999 123-45-67-",
+            "+7 999 123-45-6a"
         )
 
-        invalidAddresses.forEach { address ->
-            assertEquals(address, mapOf(AuthField.Email to AuthFieldError.InvalidEmail), validateSignIn(address, "password"))
+        invalidContacts.forEach { contact ->
+            assertEquals(
+                contact,
+                mapOf(AuthField.Contact to AuthFieldError.InvalidContact),
+                validateAuthForm(contact, "password")
+            )
         }
-    }
-
-    @Test
-    fun registrationReportsEveryBlankField() {
-        assertEquals(
-            AuthField.entries.associateWith { AuthFieldError.Required },
-            validateRegistration(" ", " ", "        ", "        ")
-        )
-    }
-
-    @Test
-    fun registrationRequiresEightPasswordCharactersAndAnExactConfirmation() {
-        assertEquals(
-            mapOf(
-                AuthField.Password to AuthFieldError.PasswordTooShort,
-                AuthField.PasswordConfirmation to AuthFieldError.PasswordMismatch
-            ),
-            validateRegistration("Имя", "user@example.com", "1234567", "1234567 ")
-        )
-        assertEquals(
-            mapOf(AuthField.Password to AuthFieldError.PasswordTooShort),
-            validateRegistration("Имя", "user@example.com", "🔑🔑🔑🔑", "🔑🔑🔑🔑")
-        )
-        assertTrue(validateRegistration("Имя", "user@example.com", " 123456 ", " 123456 ").isEmpty())
     }
 }
