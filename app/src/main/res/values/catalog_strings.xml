@@ -1,0 +1,34 @@
+<resources>
+    <string name="catalog_brand">◉ tusumba</string>
+    <string name="catalog_sign_in">Войти</string>
+    <string name="catalog_kicker">АФИША И ВПЕЧАТЛЕНИЯ</string>
+    <string name="catalog_heading">Куда пойдём?</string>
+    <string name="catalog_intro">Выбирай интересные события, знакомься с людьми и проводи время ярче.</string>
+    <string name="catalog_search">Название события или место</string>
+    <string name="catalog_clear_search">Очистить поиск</string>
+    <string name="catalog_all">Все</string>
+    <string name="catalog_music">Музыка</string>
+    <string name="catalog_sport">Спорт</string>
+    <string name="catalog_creativity">Творчество</string>
+    <string name="catalog_education">Образование</string>
+    <string name="catalog_meetings">Встречи</string>
+    <string name="catalog_walks">Прогулки</string>
+    <string name="catalog_upcoming">Ближайшие мероприятия</string>
+    <string name="catalog_count">Найдено: %1$d</string>
+    <string name="catalog_cover">Плейсхолдер обложки</string>
+    <string name="catalog_event_tag">СОБЫТИЕ</string>
+    <string name="catalog_details">Подробнее</string>
+    <string name="catalog_free">Бесплатно</string>
+    <string name="catalog_price">от %1$d ₽</string>
+    <string name="catalog_loading">Загрузка мероприятий</string>
+    <string name="catalog_empty_title">Мероприятия не найдены</string>
+    <string name="catalog_empty_description">Попробуйте другой запрос или сбросьте выбранные фильтры.</string>
+    <string name="catalog_reset">Сбросить фильтры</string>
+    <string name="catalog_error_title">Не удалось загрузить данные</string>
+    <string name="catalog_error_description">Сервер временно недоступен или пропало соединение. Попробуйте ещё раз.</string>
+    <string name="catalog_retry">Повторить</string>
+    <string name="catalog_nav_events">Афиша</string>
+    <string name="catalog_nav_clubs">Секции</string>
+    <string name="catalog_nav_friends">Друзья</string>
+    <string name="catalog_nav_profile">Профиль</string>
+</resources>

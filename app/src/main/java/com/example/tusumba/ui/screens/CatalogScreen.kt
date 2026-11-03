@@ -1,43 +1,67 @@
 package com.example.tusumba.ui.screens
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.tusumba.data.catalog.EventType
+import com.example.tusumba.ui.catalog.CatalogBody
+import com.example.tusumba.ui.catalog.CatalogHeader
+import com.example.tusumba.ui.catalog.CatalogNavigation
+import com.example.tusumba.ui.catalog.CatalogTheme
+import com.example.tusumba.ui.catalog.CatalogUiState
+import com.example.tusumba.ui.catalog.CatalogViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CatalogScreen(
     onEventClick: (String) -> Unit,
-    onProfileClick: () -> Unit
+    onProfileClick: () -> Unit,
+    viewModel: CatalogViewModel = hiltViewModel(),
 ) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Каталог мероприятий") },
-                actions = {
-                    TextButton(onClick = onProfileClick) {
-                        Text("Профиль")
-                    }
-                }
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    CatalogScreenContent(
+        state = state,
+        onQueryChange = viewModel::setQuery,
+        onTypeChange = viewModel::setType,
+        onResetFilters = viewModel::resetFilters,
+        onRetry = viewModel::refresh,
+        onEventClick = onEventClick,
+        onProfileClick = onProfileClick,
+    )
+}
+
+@Composable
+internal fun CatalogScreenContent(
+    state: CatalogUiState,
+    onQueryChange: (String) -> Unit,
+    onTypeChange: (EventType?) -> Unit,
+    onResetFilters: () -> Unit,
+    onRetry: () -> Unit,
+    onEventClick: (String) -> Unit,
+    onProfileClick: () -> Unit,
+) {
+    CatalogTheme {
+        Scaffold(
+            // Системные отступы уже учитывает Scaffold в MainActivity.
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
+            containerColor = MaterialTheme.colorScheme.surface,
+            topBar = { CatalogHeader(onProfileClick) },
+            bottomBar = { CatalogNavigation(onProfileClick) },
+        ) { padding ->
+            CatalogBody(
+                state,
+                onQueryChange,
+                onTypeChange,
+                onResetFilters,
+                onRetry,
+                onEventClick,
+                Modifier.padding(padding),
             )
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text("Экран каталога (Заглушка)", style = MaterialTheme.typography.headlineSmall)
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = { onEventClick("123") }) {
-                Text("Перейти к мероприятию #123")
-            }
         }
     }
 }
