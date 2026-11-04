@@ -1,0 +1,32 @@
+<resources>
+    <string name="auth_back">Назад</string>
+    <string name="auth_back_with_arrow">← Назад</string>
+    <string name="auth_brand">tusumba</string>
+    <string name="auth_sign_in_overline">ДОБРО ПОЖАЛОВАТЬ</string>
+    <string name="auth_sign_in_title">С возвращением!</string>
+    <string name="auth_sign_in_intro">Войди, чтобы продолжить находить события и управлять своими записями.</string>
+    <string name="auth_register_overline">СОЗДАЙ ПРОФИЛЬ</string>
+    <string name="auth_register_title">Присоединяйся!</string>
+    <string name="auth_register_intro">Самое интересное начинается с одного шага.</string>
+    <string name="auth_contact">Email или телефон</string>
+    <string name="auth_contact_hint">name@example.com или +7…</string>
+    <string name="auth_password">Пароль</string>
+    <string name="auth_password_hint">Введите пароль</string>
+    <string name="auth_sign_in">Войти</string>
+    <string name="auth_register">Зарегистрироваться</string>
+    <string name="auth_to_sign_in">Уже есть аккаунт? Войти</string>
+    <string name="auth_to_register">Нет аккаунта? Зарегистрироваться</string>
+    <string name="auth_show_password">Показать</string>
+    <string name="auth_hide_password">Скрыть</string>
+    <string name="auth_show_password_description">Показать пароль</string>
+    <string name="auth_hide_password_description">Скрыть пароль</string>
+    <string name="auth_required">Заполните обязательные поля.</string>
+    <string name="auth_invalid_contact">Введите корректный email или телефон.</string>
+    <string name="auth_contact_registered">Пользователь с такими данными уже зарегистрирован.</string>
+    <string name="auth_registration_unavailable">Не удалось зарегистрироваться. Попробуйте позже.</string>
+    <string name="auth_invalid_credentials">Неверный email, телефон или пароль.</string>
+    <string name="auth_footer">© Tusumba</string>
+    <string name="profile_title">Профиль</string>
+    <string name="profile_guest">Войдите в аккаунт, чтобы открыть личный кабинет</string>
+    <string name="profile_sign_out">Выйти из аккаунта</string>
+</resources>
