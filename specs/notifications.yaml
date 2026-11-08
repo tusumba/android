@@ -1,0 +1,98 @@
+openapi: 3.0.3
+info:
+  title: Tusumba Notifications API
+  version: 1.0.0
+  description: |
+    API сервиса Notifications по разделу «Уведомления» архитектуры Tusumba.
+    Настройки push и email, регистрация и удаление токенов устройств Android.
+    Внешний API доступен через API Gateway. Доступ - зарегистрированный пользователь.
+  x-task: https://ai.nsu.ru/issues/18893
+externalDocs:
+  description: Архитектура Tusumba
+  url: https://ai.nsu.ru/projects/tusumba/wiki/Архитектура
+security:
+  - BearerAuth: []
+paths:
+  /v1/me/notification-settings:
+    get:
+      operationId: getNotificationSettings
+      summary: Получить настройки push и email
+      responses:
+        default:
+          description: Настройки уведомлений пользователя
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationSettings'
+    put:
+      operationId: updateNotificationSettings
+      summary: Сохранить настройки push и email
+      description: |
+        Система сохраняет новые настройки уведомлений пользователя.
+        Если пользователь отключил уведомления, система не отправляет push.
+        Ошибка из требования #18119:
+        «Не удалось обновить настройки уведомлений. Попробуйте позже.»
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationSettings'
+      responses:
+        default:
+          description: Результат сохранения настроек уведомлений
+  /v1/me/devices:
+    post:
+      operationId: registerDevice
+      summary: Зарегистрировать токен устройства
+      description: Токены FCM устройств Android хранятся в device_tokens.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceRegistration'
+      responses:
+        default:
+          description: Результат регистрации токена устройства
+  /v1/me/devices/{id}:
+    delete:
+      operationId: deleteDevice
+      summary: Удалить токен устройства
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Идентификатор записи device_tokens
+          schema:
+            type: string
+            format: uuid
+      responses:
+        default:
+          description: Результат удаления токена устройства
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT RS256 проверяется каждым сервисом по публичному ключу Identity.
+  schemas:
+    NotificationSettings:
+      type: object
+      description: Настройки push и email пользователя
+      properties:
+        push_enabled:
+          type: boolean
+          description: Включены ли push-уведомления
+        email_enabled:
+          type: boolean
+          description: Включены ли email-уведомления
+    DeviceRegistration:
+      type: object
+      description: Токен FCM устройства Android
+      properties:
+        platform:
+          type: string
+          enum: [android]
+        token:
+          type: string
+          description: Токен FCM

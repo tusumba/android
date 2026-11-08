@@ -6,4 +6,5 @@ plugins {
     alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.hilt) apply false
     alias(libs.plugins.ksp) apply false
+    id("org.openapi.generator") version "7.10.0" apply false
 }
