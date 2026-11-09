@@ -59,6 +59,7 @@ android {
             java.srcDir("$buildDir/generated/openapi/events/src/main/kotlin")
             java.srcDir("$buildDir/generated/openapi/moderation/src/main/kotlin")
             java.srcDir("$buildDir/generated/openapi/identity/src/main/kotlin")
+            java.srcDir("$buildDir/generated/openapi/ticketing/src/main/kotlin")
         }
     }
 }
@@ -198,6 +199,27 @@ tasks.register<GenerateTask>("openApiGenerateIdentity") {
     ))
 }
 
+tasks.register<GenerateTask>("openApiGenerateTicketing") {
+    generatorName.set("kotlin")
+    inputSpec.set("$rootDir/specs/ticketing.yaml")
+    outputDir.set("$buildDir/generated/openapi/ticketing")
+
+    packageName.set("com.example.tusumba.data.ticketing")
+
+    apiPackage.set("com.example.tusumba.data.ticketing.api")
+    modelPackage.set("com.example.tusumba.data.ticketing.model")
+
+    generateApiTests.set(false)
+    generateModelTests.set(false)
+
+    configOptions.set(mapOf(
+        "library" to "jvm-retrofit2",
+        "serializationLibrary" to "kotlinx_serialization",
+        "useCoroutines" to "true",
+        "dateLibrary" to "java8"
+    ))
+}
+
 tasks.named("preBuild") {
-    dependsOn("openApiGenerateNotifications", "openApiGenerateEvents", "openApiGenerateModeration", "openApiGenerateIdentity")
+    dependsOn("openApiGenerateNotifications", "openApiGenerateEvents", "openApiGenerateModeration", "openApiGenerateIdentity", "openApiGenerateTicketing")
 }
