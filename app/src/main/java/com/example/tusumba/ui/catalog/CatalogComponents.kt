@@ -35,7 +35,8 @@ import androidx.compose.ui.unit.sp
 import com.example.tusumba.R
 import com.example.tusumba.data.catalog.CatalogEvent
 import com.example.tusumba.data.catalog.CatalogFilters
-import com.example.tusumba.data.catalog.EventType
+import com.example.tusumba.data.catalog.EventStatus
+import com.example.tusumba.data.catalog.formatRubles
 import com.example.tusumba.ui.screens.CatalogScreenContent
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -108,7 +109,7 @@ internal fun CatalogNavigation(onProfileClick: () -> Unit) {
 internal fun CatalogBody(
     state: CatalogUiState,
     onQueryChange: (String) -> Unit,
-    onTypeChange: (EventType?) -> Unit,
+    onIsFreeChange: (Boolean?) -> Unit,
     onResetFilters: () -> Unit,
     onRetry: () -> Unit,
     onEventClick: (String) -> Unit,
@@ -138,7 +139,7 @@ internal fun CatalogBody(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 item(key = "filters") {
-                    CatalogFiltersPanel(state.filters, onQueryChange, onTypeChange)
+                    CatalogFiltersPanel(state.filters, onQueryChange, onIsFreeChange)
                 }
                 item(key = "count") {
                     Row(
@@ -182,7 +183,7 @@ internal fun CatalogBody(
 private fun CatalogFiltersPanel(
     filters: CatalogFilters,
     onQueryChange: (String) -> Unit,
-    onTypeChange: (EventType?) -> Unit,
+    onIsFreeChange: (Boolean?) -> Unit,
 ) {
     Column {
         Text(
@@ -231,17 +232,8 @@ private fun CatalogFiltersPanel(
         )
         Spacer(Modifier.height(12.dp))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-            item { CatalogChip(null, filters.type == null, onTypeChange) }
-            items(
-                listOf(
-                    EventType.MUSIC,
-                    EventType.SPORT,
-                    EventType.CREATIVITY,
-                    EventType.EDUCATION,
-                    EventType.MEETINGS,
-                )
-            ) { type ->
-                CatalogChip(type, filters.type == type, onTypeChange)
+            items(listOf(null, true, false)) { isFree ->
+                CatalogChip(isFree, filters.isFree == isFree, onIsFreeChange)
             }
         }
         Spacer(Modifier.height(8.dp))
@@ -250,13 +242,21 @@ private fun CatalogFiltersPanel(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CatalogChip(type: EventType?, selected: Boolean, onTypeChange: (EventType?) -> Unit) {
+private fun CatalogChip(
+    isFree: Boolean?,
+    selected: Boolean,
+    onIsFreeChange: (Boolean?) -> Unit,
+) {
+    val label =
+        when (isFree) {
+            null -> R.string.catalog_all
+            true -> R.string.catalog_free_events
+            false -> R.string.catalog_paid_events
+        }
     FilterChip(
         selected,
-        onClick = { onTypeChange(type) },
-        label = {
-            Text(stringResource(type?.labelResource() ?: R.string.catalog_all), fontSize = 12.sp)
-        },
+        onClick = { onIsFreeChange(isFree) },
+        label = { Text(stringResource(label), fontSize = 12.sp) },
         shape = RoundedCornerShape(100.dp),
         colors =
             FilterChipDefaults.filterChipColors(
@@ -269,7 +269,7 @@ private fun CatalogChip(type: EventType?, selected: Boolean, onTypeChange: (Even
 @Composable
 private fun CatalogEventCard(event: CatalogEvent, onEventClick: (String) -> Unit) {
     val formatter = remember {
-        DateTimeFormatter.ofPattern("d MMMM · HH:mm", Locale.forLanguageTag("ru"))
+        DateTimeFormatter.ofPattern("d MMMM", Locale.forLanguageTag("ru"))
     }
     OutlinedCard(
         Modifier.fillMaxWidth().testTag("event_${event.id}"),
@@ -279,7 +279,7 @@ private fun CatalogEventCard(event: CatalogEvent, onEventClick: (String) -> Unit
         EventCover()
         Column(Modifier.padding(start = 15.dp, end = 15.dp, top = 16.dp, bottom = 17.dp)) {
             Text(
-                stringResource(event.type.labelResource()).uppercase(Locale.forLanguageTag("ru")),
+                stringResource(event.status.labelResource()).uppercase(Locale.forLanguageTag("ru")),
                 color = MaterialTheme.colorScheme.primary,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
@@ -293,8 +293,8 @@ private fun CatalogEventCard(event: CatalogEvent, onEventClick: (String) -> Unit
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            EventMetadata(Icons.Outlined.DateRange, event.startsAt.format(formatter))
-            EventMetadata(Icons.Outlined.Place, event.venue)
+            EventMetadata(Icons.Outlined.DateRange, event.date.format(formatter))
+            EventMetadata(Icons.Outlined.Place, event.placeAddress)
             Spacer(Modifier.height(13.dp))
             Row(
                 Modifier.fillMaxWidth(),
@@ -302,8 +302,8 @@ private fun CatalogEventCard(event: CatalogEvent, onEventClick: (String) -> Unit
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
-                    if (event.priceRubles == 0) stringResource(R.string.catalog_free)
-                    else stringResource(R.string.catalog_price, event.priceRubles),
+                    if (event.isFree || event.price == null) stringResource(R.string.catalog_free)
+                    else stringResource(R.string.catalog_price, event.price.formatRubles()),
                     Modifier.weight(1f),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
@@ -457,14 +457,12 @@ private fun Skeleton(modifier: Modifier) =
             .background(MaterialTheme.colorScheme.surfaceVariant)
     )
 
-private fun EventType.labelResource() =
+private fun EventStatus.labelResource() =
     when (this) {
-        EventType.MUSIC -> R.string.catalog_music
-        EventType.SPORT -> R.string.catalog_sport
-        EventType.CREATIVITY -> R.string.catalog_creativity
-        EventType.EDUCATION -> R.string.catalog_education
-        EventType.MEETINGS -> R.string.catalog_meetings
-        EventType.WALKS -> R.string.catalog_walks
+        EventStatus.NOT_CONFIRMED -> R.string.catalog_status_not_confirmed
+        EventStatus.CONFIRMED -> R.string.catalog_status_confirmed
+        EventStatus.HELD -> R.string.catalog_status_held
+        EventStatus.NOT_HELD -> R.string.catalog_status_not_held
     }
 
 @Preview(name = "Загрузка", widthDp = 390, heightDp = 844, showBackground = true)

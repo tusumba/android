@@ -9,7 +9,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.tusumba.data.catalog.EventType
 import com.example.tusumba.ui.catalog.CatalogBody
 import com.example.tusumba.ui.catalog.CatalogHeader
 import com.example.tusumba.ui.catalog.CatalogNavigation
@@ -27,7 +26,7 @@ fun CatalogScreen(
     CatalogScreenContent(
         state = state,
         onQueryChange = viewModel::setQuery,
-        onTypeChange = viewModel::setType,
+        onIsFreeChange = viewModel::setIsFree,
         onResetFilters = viewModel::resetFilters,
         onRetry = viewModel::refresh,
         onEventClick = onEventClick,
@@ -39,7 +38,7 @@ fun CatalogScreen(
 internal fun CatalogScreenContent(
     state: CatalogUiState,
     onQueryChange: (String) -> Unit,
-    onTypeChange: (EventType?) -> Unit,
+    onIsFreeChange: (Boolean?) -> Unit,
     onResetFilters: () -> Unit,
     onRetry: () -> Unit,
     onEventClick: (String) -> Unit,
@@ -56,7 +55,7 @@ internal fun CatalogScreenContent(
             CatalogBody(
                 state,
                 onQueryChange,
-                onTypeChange,
+                onIsFreeChange,
                 onResetFilters,
                 onRetry,
                 onEventClick,

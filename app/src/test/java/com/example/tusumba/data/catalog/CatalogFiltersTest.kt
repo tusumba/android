@@ -10,25 +10,36 @@ class CatalogFiltersTest {
     fun searchMatchesTitleIgnoringCaseAndSurroundingSpaces() = runTest {
         val result = MockEventsRepository().getEvents().filteredBy(CatalogFilters("  ШАХМАТ  "))
 
-        assertEquals(listOf("chess"), result.map { it.id })
+        assertEquals(listOf("Турнир по шахматам"), result.map { it.title })
     }
 
     @Test
-    fun searchAlsoMatchesVenue() = runTest {
+    fun searchDoesNotMatchPlaceAddress() = runTest {
         val result = MockEventsRepository().getEvents().filteredBy(CatalogFilters("парк"))
 
-        assertEquals(listOf("open-air-music"), result.map { it.id })
+        assertTrue(result.isEmpty())
     }
 
     @Test
-    fun queryAndCategoryAreAppliedTogether() = runTest {
+    fun queryAndIsFreeAreAppliedTogether() = runTest {
         val events = MockEventsRepository().getEvents()
 
-        assertTrue(events.filteredBy(CatalogFilters("парк", EventType.SPORT)).isEmpty())
+        assertTrue(events.filteredBy(CatalogFilters("мастерская", isFree = true)).isEmpty())
         assertEquals(
-            listOf("open-air-music"),
-            events.filteredBy(CatalogFilters("парк", EventType.MUSIC)).map { it.id },
+            listOf("Мастерская керамики"),
+            events.filteredBy(CatalogFilters("мастерская", isFree = false)).map { it.title },
+        )
+        assertEquals(
+            listOf("Вечер настольных игр", "Научный лекторий", "Экскурсия по городу"),
+            events.filteredBy(CatalogFilters(isFree = true)).map { it.title },
         )
         assertEquals(events, events.filteredBy(CatalogFilters()))
+    }
+
+    @Test
+    fun priceInKopecksIsShownInRubles() {
+        assertEquals("500", Money(50000).formatRubles())
+        assertEquals("499,90", Money(49990).formatRubles())
+        assertEquals("0,05", Money(5).formatRubles())
     }
 }
