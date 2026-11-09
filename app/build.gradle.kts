@@ -1,4 +1,5 @@
 import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
+import java.net.URI
 
 plugins {
     alias(libs.plugins.android.application)
@@ -14,6 +15,19 @@ val catalogMockScenario = providers.gradleProperty("catalogMockScenario").orElse
 require(catalogMockScenario in setOf("success", "empty", "error")) {
     "catalogMockScenario must be success, empty or error"
 }
+
+val debugApiBaseUrl = providers.gradleProperty("apiBaseUrl")
+    .orElse("http://10.0.2.2:8080/").get().trim().let {
+        if (it.endsWith('/')) it else "$it/"
+    }
+val debugApiUri = URI(debugApiBaseUrl)
+require(
+    debugApiUri.scheme in setOf("http", "https") &&
+        debugApiUri.host != null &&
+        debugApiUri.rawUserInfo == null &&
+        debugApiUri.rawQuery == null &&
+        debugApiUri.rawFragment == null
+) { "apiBaseUrl must be an HTTP(S) base URL without credentials, query or fragment" }
 
 android {
     namespace = "com.example.tusumba"
@@ -31,7 +45,7 @@ android {
     buildTypes {
         debug {
             // Для эмулятора localhost компьютера — это 10.0.2.2.
-            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8080/\"")
+            buildConfigField("String", "BASE_URL", "\"$debugApiBaseUrl\"")
         }
         release {
             isMinifyEnabled = false
