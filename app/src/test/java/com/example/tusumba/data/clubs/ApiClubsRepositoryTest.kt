@@ -3,12 +3,18 @@ package com.example.tusumba.data.clubs
 import com.example.tusumba.data.events.api.ClubsApi
 import com.example.tusumba.data.events.api.EventsApi
 import com.example.tusumba.data.events.model.EventStatus
+import com.example.tusumba.data.local.TokenManager
+import com.example.tusumba.data.network.AuthInterceptor
+import com.example.tusumba.data.network.TokenAuthenticator
 import com.example.tusumba.di.NetworkModule
+import io.mockk.every
+import io.mockk.mockk
 import java.io.IOException
 import java.time.LocalDate
 import java.util.UUID
 import kotlinx.coroutines.test.runTest
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
@@ -32,14 +38,7 @@ class ApiClubsRepositoryTest {
     fun setUp() {
         server = MockWebServer()
         server.start()
-        val retrofit = Retrofit.Builder()
-            .baseUrl(server.url("/"))
-            .addConverterFactory(NetworkModule.provideJson().asConverterFactory("application/json".toMediaType()))
-            .build()
-        repository = ApiClubsRepository(
-            retrofit.create(ClubsApi::class.java),
-            retrofit.create(EventsApi::class.java)
-        )
+        repository = createRepository()
     }
 
     @After
@@ -147,6 +146,56 @@ class ApiClubsRepositoryTest {
     }
 
     @Test
+    fun rejectedTokenRetriesThePublicRequestWithoutAuthorization() = runTest {
+        repository = authenticatedRepository()
+        server.enqueue(jsonResponse("""{"error":{"code":"invalid_token","message":"Недействительный токен"}}""", 401))
+        server.enqueue(jsonResponse("""{"items":[],"total":0,"page":1,"size":20}"""))
+
+        val page = repository.getClubs("шахматы")
+
+        assertTrue(page.items.isEmpty())
+        assertEquals(2, server.requestCount)
+        val first = server.takeRequest()
+        val second = server.takeRequest()
+        assertEquals("Bearer mock-access-token", first.getHeader("Authorization"))
+        assertNull(second.getHeader("Authorization"))
+        assertEquals(first.path, second.path)
+        assertEquals("GET", second.method)
+    }
+
+    @Test
+    fun anonymousUnauthorizedResponseDoesNotRetry() = runTest {
+        server.enqueue(jsonResponse("""{"error":{"code":"not_authenticated","message":"Требуется авторизация"}}""", 401))
+
+        try {
+            repository.getClubs(null)
+            throw AssertionError("Expected the anonymous authorization failure")
+        } catch (error: HttpException) {
+            assertEquals(401, error.code())
+        }
+        assertEquals(1, server.requestCount)
+        assertNull(server.takeRequest().getHeader("Authorization"))
+    }
+
+    @Test
+    fun rejectedAnonymousRetryPropagatesWithoutFurtherRequests() = runTest {
+        repository = authenticatedRepository()
+        server.enqueue(jsonResponse("""{"error":{"code":"invalid_token","message":"Недействительный токен"}}""", 401))
+        server.enqueue(jsonResponse("""{"error":{"code":"not_authenticated","message":"Требуется авторизация"}}""", 401))
+        server.enqueue(jsonResponse("{}", 500))
+
+        try {
+            repository.getClubs(null)
+            throw AssertionError("Expected the retried authorization failure")
+        } catch (error: HttpException) {
+            assertEquals(401, error.code())
+        }
+        assertEquals(2, server.requestCount)
+        assertEquals("Bearer mock-access-token", server.takeRequest().getHeader("Authorization"))
+        assertNull(server.takeRequest().getHeader("Authorization"))
+    }
+
+    @Test
     fun emptyAndMalformedSuccessfulResponsesAreIoFailures() = runTest {
         server.enqueue(MockResponse().setResponseCode(204))
         try {
@@ -193,4 +242,26 @@ class ApiClubsRepositoryTest {
             .setResponseCode(status)
             .setHeader("Content-Type", "application/json")
             .setBody(body)
+
+    private fun authenticatedRepository(): ClubsRepository {
+        var accessToken: String? = "mock-access-token"
+        val tokenManager = mockk<TokenManager>()
+        every { tokenManager.getAccessToken() } answers { accessToken }
+        every { tokenManager.clearTokens() } answers { accessToken = null }
+        return createRepository(
+            NetworkModule.provideOkHttpClient(AuthInterceptor(tokenManager), TokenAuthenticator(tokenManager))
+        )
+    }
+
+    private fun createRepository(client: OkHttpClient = OkHttpClient()): ClubsRepository {
+        val retrofit = Retrofit.Builder()
+            .baseUrl(server.url("/"))
+            .client(client)
+            .addConverterFactory(NetworkModule.provideJson().asConverterFactory("application/json".toMediaType()))
+            .build()
+        return ApiClubsRepository(
+            retrofit.create(ClubsApi::class.java),
+            retrofit.create(EventsApi::class.java)
+        )
+    }
 }

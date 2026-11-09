@@ -34,7 +34,14 @@ class ApiClubsRepository(
 
     private suspend fun <T> request(call: suspend () -> Response<T>): Response<T> =
         try {
-            call()
+            val response = call()
+            if (response.code() == 401 && response.raw().request.header("Authorization") != null) {
+                // TokenAuthenticator cleared the rejected token. These GETs also allow guest access.
+                response.errorBody()?.close()
+                call()
+            } else {
+                response
+            }
         } catch (error: IllegalArgumentException) {
             throw IOException("Invalid Events & Clubs response", error)
         } catch (error: DateTimeException) {
