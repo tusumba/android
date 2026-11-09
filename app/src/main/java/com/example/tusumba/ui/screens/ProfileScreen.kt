@@ -45,7 +45,8 @@ fun ProfileScreen(
                     Text(stringResource(R.string.auth_sign_in))
                 }
             } else {
-                Text(user.contact, style = MaterialTheme.typography.headlineSmall)
+                Text(user.nickname, style = MaterialTheme.typography.headlineSmall)
+                Text(user.email, style = MaterialTheme.typography.bodyMedium)
                 OutlinedButton(onClick = onSignOut) {
                     Text(stringResource(R.string.profile_sign_out))
                 }
