@@ -10,9 +10,10 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import com.example.tusumba.data.catalog.CatalogEvent
 import com.example.tusumba.data.catalog.CatalogFilters
-import com.example.tusumba.data.catalog.EventType
+import com.example.tusumba.data.catalog.EventStatus
+import com.example.tusumba.data.catalog.Money
 import com.example.tusumba.ui.screens.CatalogScreenContent
-import java.time.LocalDateTime
+import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -32,12 +33,13 @@ class CatalogScreenTest {
         var openedId: String? = null
         val event =
             CatalogEvent(
-                "test-event",
-                "Научный лекторий",
-                LocalDateTime.of(2026, 11, 26, 19, 0),
-                "Библиотека",
-                EventType.EDUCATION,
-                0,
+                id = "test-event",
+                title = "Научный лекторий",
+                date = LocalDate.of(2026, 11, 26),
+                placeAddress = "Библиотека",
+                isFree = true,
+                price = null,
+                status = EventStatus.CONFIRMED,
             )
         show(
             CatalogUiState(content = CatalogContent.Events(listOf(event))),
@@ -48,14 +50,47 @@ class CatalogScreenTest {
             .onNodeWithTag("catalog_list")
             .performScrollToNode(androidx.compose.ui.test.hasText("Научный лекторий"))
         compose.onNodeWithText("Научный лекторий").assertIsDisplayed()
-        compose.onNodeWithText("ОБРАЗОВАНИЕ").assertIsDisplayed()
-        compose.onNodeWithText("26 ноября · 19:00").assertIsDisplayed()
+        compose.onNodeWithText("ПОДТВЕРЖДЕНО").assertIsDisplayed()
+        compose.onNodeWithText("26 ноября").assertIsDisplayed()
         compose.onNodeWithText("Библиотека").assertIsDisplayed()
+        compose.onNodeWithText("Бесплатно").assertIsDisplayed()
         compose
             .onNodeWithTag("catalog_list")
             .performScrollToNode(androidx.compose.ui.test.hasText("Подробнее"))
         compose.onNodeWithText("Подробнее").performClick()
         assertEquals("test-event", openedId)
+    }
+
+    @Test
+    fun paidCardShowsPriceInRublesAndStatus() {
+        val event =
+            CatalogEvent(
+                id = "paid-event",
+                title = "Мастерская керамики",
+                date = LocalDate.of(2026, 11, 22),
+                placeAddress = "Арт-пространство",
+                isFree = false,
+                price = Money(90000),
+                status = EventStatus.NOT_CONFIRMED,
+            )
+        show(CatalogUiState(content = CatalogContent.Events(listOf(event))))
+
+        compose
+            .onNodeWithTag("catalog_list")
+            .performScrollToNode(androidx.compose.ui.test.hasText("900 ₽"))
+        compose.onNodeWithText("900 ₽").assertIsDisplayed()
+        compose.onNodeWithText("НЕ ПОДТВЕРЖДЕНО").assertIsDisplayed()
+    }
+
+    @Test
+    fun isFreeChipSendsTheContractFilter() {
+        var isFree: Boolean? = null
+        show(CatalogUiState(CatalogFilters(), CatalogContent.Empty), onIsFree = { isFree = it })
+
+        compose.onNodeWithText("Платные").performClick()
+        assertEquals(false, isFree)
+        compose.onNodeWithText("Бесплатные").performClick()
+        assertEquals(true, isFree)
     }
 
     @Test
@@ -103,13 +138,14 @@ class CatalogScreenTest {
     private fun show(
         state: CatalogUiState,
         onQuery: (String) -> Unit = {},
+        onIsFree: (Boolean?) -> Unit = {},
         onReset: () -> Unit = {},
         onRetry: () -> Unit = {},
         onEvent: (String) -> Unit = {},
         onProfile: () -> Unit = {},
     ) {
         compose.setContent {
-            CatalogScreenContent(state, onQuery, {}, onReset, onRetry, onEvent, onProfile)
+            CatalogScreenContent(state, onQuery, onIsFree, onReset, onRetry, onEvent, onProfile)
         }
     }
 }

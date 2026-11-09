@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.tusumba.data.catalog.CatalogEvent
 import com.example.tusumba.data.catalog.CatalogFilters
-import com.example.tusumba.data.catalog.EventType
 import com.example.tusumba.data.catalog.EventsRepository
 import com.example.tusumba.data.catalog.filteredBy
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -52,7 +51,7 @@ class CatalogViewModel @Inject constructor(private val repository: EventsReposit
 
     fun setQuery(query: String) = updateFilters(state.value.filters.copy(query = query))
 
-    fun setType(type: EventType?) = updateFilters(state.value.filters.copy(type = type))
+    fun setIsFree(isFree: Boolean?) = updateFilters(state.value.filters.copy(isFree = isFree))
 
     fun resetFilters() = updateFilters(CatalogFilters())
 
