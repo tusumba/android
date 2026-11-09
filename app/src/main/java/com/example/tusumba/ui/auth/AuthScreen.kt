@@ -27,6 +27,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -62,15 +63,19 @@ private val AuthBrandBlue = Color(0xFF4757BE)
 private val AuthBrandMint = Color(0xFF9AF0DD)
 private val AuthFieldShape = RoundedCornerShape(12.dp)
 
+/** [login] - почта или ник при входе, email при регистрации. */
+internal data class AuthForm(val login: String, val password: String, val nickname: String = "")
+
 @Composable
 internal fun AuthScreen(
     isRegistration: Boolean,
     onBackClick: () -> Unit,
     onSwitchMode: () -> Unit,
-    onAuthenticate: suspend (contact: String, password: String) -> AuthResult,
+    onAuthenticate: suspend (AuthForm) -> AuthResult,
     onAuthenticated: () -> Unit
 ) = AuthTheme {
-    var contact by rememberSaveable { mutableStateOf("") }
+    var login by rememberSaveable { mutableStateOf("") }
+    var nickname by rememberSaveable { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var attemptedSubmit by remember { mutableStateOf(false) }
@@ -79,17 +84,21 @@ internal fun AuthScreen(
     val focusManager = LocalFocusManager.current
     val scope = rememberCoroutineScope()
 
+    fun validate() =
+        if (isRegistration) validateRegistrationForm(login, nickname, password)
+        else validateSignInForm(login, password)
+
     fun submit() {
         if (isSubmitting) return
         attemptedSubmit = true
         submitError = null
-        if (validateAuthForm(contact, password).isNotEmpty()) return
+        if (validate().isNotEmpty()) return
 
         isSubmitting = true
         focusManager.clearFocus()
         scope.launch {
             try {
-                val result = onAuthenticate(contact.trim(), password)
+                val result = onAuthenticate(AuthForm(login.trim(), password, nickname.trim()))
                 if (result is AuthResult.Success) {
                     onAuthenticated()
                 } else {
@@ -101,18 +110,28 @@ internal fun AuthScreen(
         }
     }
 
-    val errors = if (attemptedSubmit) validateAuthForm(contact, password) else emptyMap()
-    val contactAlreadyRegistered = submitError == AuthResult.ContactAlreadyRegistered
-    val contactMessage = when {
-        contactAlreadyRegistered -> stringResource(R.string.auth_contact_registered)
-        errors[AuthField.Contact] == AuthFieldError.InvalidContact ->
-            stringResource(R.string.auth_invalid_contact)
+    val errors = if (attemptedSubmit) validate() else emptyMap()
+    val loginField = if (isRegistration) AuthField.Email else AuthField.Login
+    val userAlreadyExists = submitError == AuthResult.UserAlreadyExists
+    val loginMessage = when (errors[loginField]) {
+        AuthFieldError.InvalidEmail -> stringResource(R.string.auth_invalid_email)
+        else -> null
+    }
+    val nicknameMessage = when (errors[AuthField.Nickname]) {
+        AuthFieldError.InvalidNickname -> stringResource(R.string.auth_invalid_nickname)
+        else -> null
+    }
+    val passwordMessage = when (errors[AuthField.Password]) {
+        AuthFieldError.InvalidPassword -> stringResource(R.string.auth_invalid_password)
         else -> null
     }
     val formError = when {
         submitError == AuthResult.InvalidCredentials -> R.string.auth_invalid_credentials
+        submitError == AuthResult.SignInUnavailable -> R.string.auth_sign_in_unavailable
         submitError == AuthResult.RegistrationUnavailable -> R.string.auth_registration_unavailable
-        AuthFieldError.Required in errors.values -> R.string.auth_required
+        userAlreadyExists -> R.string.auth_user_exists
+        AuthFieldError.Required in errors.values ->
+            if (isRegistration) R.string.auth_required else R.string.auth_required_both
         else -> null
     }
     val title = if (isRegistration) R.string.auth_register_title else R.string.auth_sign_in_title
@@ -120,7 +139,7 @@ internal fun AuthScreen(
     val intro = if (isRegistration) R.string.auth_register_intro else R.string.auth_sign_in_intro
     val action = if (isRegistration) R.string.auth_register else R.string.auth_sign_in
     val switchAction = when {
-        contactAlreadyRegistered -> R.string.auth_sign_in
+        userAlreadyExists -> R.string.auth_sign_in
         isRegistration -> R.string.auth_to_sign_in
         else -> R.string.auth_to_register
     }
@@ -133,7 +152,8 @@ internal fun AuthScreen(
         errorContainerColor = colors.surface,
         unfocusedBorderColor = colors.outlineVariant
     )
-    val contactLabel = stringResource(R.string.auth_contact)
+    val loginLabel = stringResource(if (isRegistration) R.string.auth_email else R.string.auth_login)
+    val loginHint = stringResource(if (isRegistration) R.string.auth_email_hint else R.string.auth_login_hint)
     val passwordLabel = stringResource(R.string.auth_password)
 
     Surface(
@@ -175,45 +195,54 @@ internal fun AuthScreen(
                     )
                 }
                 Spacer(Modifier.height(28.dp))
-                AuthFieldLabel(contactLabel)
-                OutlinedTextField(
-                    value = contact,
+                AuthTextField(
+                    label = loginLabel,
+                    hint = loginHint,
+                    value = login,
                     onValueChange = {
-                        contact = it
+                        login = it
                         submitError = null
                     },
-                    modifier = Modifier.fillMaxWidth().semantics {
-                        contentDescription = contactLabel
-                        if (contactMessage != null) error(contactMessage)
-                    },
+                    message = loginMessage,
+                    isError = loginField in errors,
                     enabled = !isSubmitting,
-                    placeholder = { Text(stringResource(R.string.auth_contact_hint)) },
-                    supportingText = if (contactMessage == null) null else {
-                        { Text(contactMessage) }
-                    },
-                    isError = AuthField.Contact in errors || contactAlreadyRegistered,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Email,
-                        imeAction = ImeAction.Next
-                    ),
-                    shape = AuthFieldShape,
-                    colors = fieldColors,
-                    textStyle = typography.bodyMedium,
-                    singleLine = true
+                    keyboardType = KeyboardType.Email,
+                    colors = fieldColors
                 )
+                if (isRegistration) {
+                    Spacer(Modifier.height(13.dp))
+                    AuthTextField(
+                        label = stringResource(R.string.auth_nickname),
+                        hint = stringResource(R.string.auth_nickname_hint),
+                        value = nickname,
+                        onValueChange = {
+                            nickname = it
+                            submitError = null
+                        },
+                        message = nicknameMessage,
+                        isError = AuthField.Nickname in errors,
+                        enabled = !isSubmitting,
+                        keyboardType = KeyboardType.Ascii,
+                        colors = fieldColors
+                    )
+                }
                 Spacer(Modifier.height(13.dp))
                 AuthFieldLabel(passwordLabel)
                 OutlinedTextField(
                     value = password,
                     onValueChange = {
                         password = it
-                        if (!contactAlreadyRegistered) submitError = null
+                        submitError = null
                     },
                     modifier = Modifier.fillMaxWidth().semantics {
                         contentDescription = passwordLabel
+                        if (passwordMessage != null) error(passwordMessage)
                     },
                     enabled = !isSubmitting,
                     placeholder = { Text(stringResource(R.string.auth_password_hint)) },
+                    supportingText = if (passwordMessage == null) null else {
+                        { Text(passwordMessage) }
+                    },
                     trailingIcon = {
                         PasswordVisibilityButton(
                             visible = passwordVisible,
@@ -281,6 +310,40 @@ internal fun AuthScreen(
             }
         }
     }
+}
+
+@Composable
+private fun AuthTextField(
+    label: String,
+    hint: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    message: String?,
+    isError: Boolean,
+    enabled: Boolean,
+    keyboardType: KeyboardType,
+    colors: TextFieldColors
+) {
+    AuthFieldLabel(label)
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = Modifier.fillMaxWidth().semantics {
+            contentDescription = label
+            if (message != null) error(message)
+        },
+        enabled = enabled,
+        placeholder = { Text(hint) },
+        supportingText = if (message == null) null else {
+            { Text(message) }
+        },
+        isError = isError,
+        keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = ImeAction.Next),
+        shape = AuthFieldShape,
+        colors = colors,
+        textStyle = MaterialTheme.typography.bodyMedium,
+        singleLine = true
+    )
 }
 
 @Composable

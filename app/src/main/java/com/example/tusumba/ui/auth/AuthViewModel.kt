@@ -19,11 +19,11 @@ class AuthViewModel @Inject constructor(
     var user by mutableStateOf<AuthUser?>(null)
         private set
 
-    suspend fun signIn(contact: String, password: String): AuthResult =
-        recordSession(repository.signIn(contact, password))
+    suspend fun signIn(login: String, password: String): AuthResult =
+        recordSession(repository.signIn(login, password))
 
-    suspend fun register(contact: String, password: String): AuthResult =
-        recordSession(repository.register(contact, password))
+    suspend fun register(email: String, password: String, nickname: String): AuthResult =
+        recordSession(repository.register(email, password, nickname))
 
     fun signOut() {
         user = null

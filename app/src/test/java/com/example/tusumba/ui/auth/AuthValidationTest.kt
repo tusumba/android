@@ -1,42 +1,62 @@
 package com.example.tusumba.ui.auth
 
-import com.example.tusumba.data.auth.normalizeAuthContact
+import com.example.tusumba.data.auth.normalizeEmail
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AuthValidationTest {
     @Test
-    fun requiresContactAndPassword() {
+    fun signInRequiresBothFieldsAndAcceptsEmailOrNickname() {
         assertEquals(
-            mapOf(AuthField.Contact to AuthFieldError.Required, AuthField.Password to AuthFieldError.Required),
-            validateAuthForm(" \t", " \t")
+            mapOf(AuthField.Login to AuthFieldError.Required, AuthField.Password to AuthFieldError.Required),
+            validateSignInForm(" \t", " \t")
         )
+        assertTrue(validateSignInForm("user@example.com", "x").isEmpty())
+        assertTrue(validateSignInForm("anna_k", "x").isEmpty())
     }
 
     @Test
-    fun acceptsEmailOrPhoneWithAnyNonblankPassword() {
-        assertTrue(validateAuthForm("  User.Name+Test@Sub.Example.com  ", "x").isEmpty())
-        assertTrue(validateAuthForm("+7 (999) 123-45-67", "x").isEmpty())
-    }
-
-    @Test
-    fun normalizesEmailAndPhoneFormatting() {
+    fun registrationRequiresEmailNicknameAndPassword() {
         assertEquals(
-            "user.name+test@sub.example.com",
-            normalizeAuthContact("  User.Name+Test@Sub.Example.com  ")
+            mapOf(
+                AuthField.Email to AuthFieldError.Required,
+                AuthField.Nickname to AuthFieldError.Required,
+                AuthField.Password to AuthFieldError.Required
+            ),
+            validateRegistrationForm(" ", "", " ")
         )
-        assertEquals("+79991234567", normalizeAuthContact("+7 (999) 123-45-67"))
-        assertEquals("+79991234567", normalizeAuthContact("8 999 123 45 67"))
-        assertEquals("+79991234567", normalizeAuthContact("79991234567"))
-        assertEquals("+442079460000", normalizeAuthContact("+44 (20) 7946-0000"))
-        assertEquals("02079460000", normalizeAuthContact("020 7946 0000"))
+        assertTrue(validateRegistrationForm("  User.Name+Test@Sub.Example.com  ", "anna.k-2", "Password1").isEmpty())
     }
 
     @Test
-    fun rejectsMalformedEmailAndPhone() {
+    fun registrationFollowsRegisterRequestLimits() {
+        assertEquals(
+            mapOf(AuthField.Email to AuthFieldError.InvalidEmail),
+            validateRegistrationForm("+7 999 123-45-67", "anna", "Password1")
+        )
+        listOf("an", "a".repeat(33), "anna k", "anna@k", "анна").forEach { nickname ->
+            assertEquals(
+                nickname,
+                mapOf(AuthField.Nickname to AuthFieldError.InvalidNickname),
+                validateRegistrationForm("anna@example.com", nickname, "Password1")
+            )
+        }
+        assertTrue(validateRegistrationForm("anna@example.com", "a".repeat(32), "Password1").isEmpty())
+        listOf("Short1!", "x".repeat(129)).forEach { password ->
+            assertEquals(
+                mapOf(AuthField.Password to AuthFieldError.InvalidPassword),
+                validateRegistrationForm("anna@example.com", "anna", password)
+            )
+        }
+    }
+
+    @Test
+    fun normalizesEmailAndRejectsMalformedOnes() {
+        assertEquals("user.name+test@sub.example.com", normalizeEmail("  User.Name+Test@Sub.Example.com  "))
         val longLocalPart = "x".repeat(65)
-        val invalidContacts = listOf(
+        listOf(
             "user.example.com",
             "user@localhost",
             "user@@example.com",
@@ -46,22 +66,7 @@ class AuthValidationTest {
             "user@-example.com",
             "user@example..com",
             "$longLocalPart@example.com",
-            "1234567",
-            "1234567890123456",
-            "++79991234567",
-            "+09991234567",
-            "+7 (999 123-45-67",
-            "+7 999 123--45-67",
-            "+7 999 123-45-67-",
-            "+7 999 123-45-6a"
-        )
-
-        invalidContacts.forEach { contact ->
-            assertEquals(
-                contact,
-                mapOf(AuthField.Contact to AuthFieldError.InvalidContact),
-                validateAuthForm(contact, "password")
-            )
-        }
+            "+79991234567"
+        ).forEach { email -> assertNull(email, normalizeEmail(email)) }
     }
 }

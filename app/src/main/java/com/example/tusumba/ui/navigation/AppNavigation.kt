@@ -65,7 +65,7 @@ fun AppNavigation(
                 onSwitchMode = {
                     navController.navigate(Screen.Registration.route) { launchSingleTop = true }
                 },
-                onAuthenticate = authViewModel::signIn,
+                onAuthenticate = { form -> authViewModel.signIn(form.login, form.password) },
                 onAuthenticated = { navController.popBackStack(Screen.Profile.route, inclusive = false) }
             )
         }
@@ -74,7 +74,9 @@ fun AppNavigation(
                 isRegistration = true,
                 onBackClick = { navController.popBackStack() },
                 onSwitchMode = { navController.popBackStack() },
-                onAuthenticate = authViewModel::register,
+                onAuthenticate = { form ->
+                    authViewModel.register(form.login, form.password, form.nickname)
+                },
                 onAuthenticated = { navController.popBackStack(Screen.Profile.route, inclusive = false) }
             )
         }
