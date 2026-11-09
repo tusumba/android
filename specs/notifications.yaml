@@ -6,6 +6,11 @@ info:
     API сервиса Notifications по разделу «Уведомления» архитектуры Tusumba.
     Настройки push и email, регистрация и удаление токенов устройств Android.
     Внешний API доступен через API Gateway. Доступ - зарегистрированный пользователь.
+
+    Ошибки: объект `error` с машинным кодом `code` и сообщением `message` для пользователя
+    (#18886), для `validation_error` дополнительно `details` по полям.
+    При ответе 5xx клиент показывает сообщение из требования #18119:
+    «Не удалось обновить настройки уведомлений. Попробуйте позже.»
   x-task: https://ai.nsu.ru/issues/18893
 externalDocs:
   description: Архитектура Tusumba
@@ -17,46 +22,76 @@ paths:
     get:
       operationId: getNotificationSettings
       summary: Получить настройки push и email
+      description: Если пользователь ещё не менял настройки, push и email включены.
       responses:
-        default:
+        '200':
           description: Настройки уведомлений пользователя
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/NotificationSettings'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
     put:
       operationId: updateNotificationSettings
       summary: Сохранить настройки push и email
       description: |
         Система сохраняет новые настройки уведомлений пользователя.
         Если пользователь отключил уведомления, система не отправляет push.
-        Ошибка из требования #18119:
-        «Не удалось обновить настройки уведомлений. Попробуйте позже.»
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/NotificationSettings'
       responses:
-        default:
-          description: Результат сохранения настроек уведомлений
+        '200':
+          description: Настройки сохранены
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationSettings'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
   /v1/me/devices:
     post:
       operationId: registerDevice
       summary: Зарегистрировать токен устройства
-      description: Токены FCM устройств Android хранятся в device_tokens.
+      description: |
+        Токены FCM устройств Android хранятся в device_tokens. Ответ содержит `id`,
+        по которому токен удаляется через `DELETE /v1/me/devices/{id}`.
+        Повторная регистрация того же токена не создаёт вторую запись: ответ 200 с существующей,
+        запись привязывается к текущему пользователю.
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/DeviceRegistration'
       responses:
-        default:
-          description: Результат регистрации токена устройства
+        '200':
+          description: Токен уже был зарегистрирован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+        '201':
+          description: Токен зарегистрирован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
   /v1/me/devices/{id}:
     delete:
       operationId: deleteDevice
       summary: Удалить токен устройства
+      description: Удалить можно только свой токен. Чужая запись возвращает 404, чтобы не раскрывать её существование.
       parameters:
         - name: id
           in: path
@@ -66,8 +101,20 @@ paths:
             type: string
             format: uuid
       responses:
-        default:
-          description: Результат удаления токена устройства
+        '204':
+          description: Токен удалён
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: '`device_not_found` - токена нет или он принадлежит другому пользователю.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: device_not_found
+                  message: Устройство не найдено.
 components:
   securitySchemes:
     BearerAuth:
@@ -75,10 +122,66 @@ components:
       scheme: bearer
       bearerFormat: JWT
       description: JWT RS256 проверяется каждым сервисом по публичному ключу Identity.
+  responses:
+    Unauthorized:
+      description: |
+        Ошибки проверки токена из tusumba-common:
+        `not_authenticated` - «Требуется авторизация» (нет заголовка Authorization);
+        `token_expired` - «Срок действия токена истёк» (клиент обновляет токен через `POST /v1/auth/refresh` и повторяет запрос);
+        `invalid_token` - «Недействительный токен» (подпись неверна, токен испорчен или не access).
+        Клиент выбирает действие по `code`, а не по тексту `message`.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: token_expired
+              message: Срок действия токена истёк
+    ValidationError:
+      description: '`validation_error` - тело запроса не прошло проверку.'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: validation_error
+              message: Проверьте введённые данные.
+              details:
+                - field: token
+                  message: Укажите токен устройства.
   schemas:
+    Error:
+      type: object
+      description: Ошибка в едином формате всех сервисов (tusumba-common, #18886)
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              description: Машинный код ошибки для клиента
+            message:
+              type: string
+              description: Сообщение для пользователя
+            details:
+              type: array
+              description: Ошибки по отдельным полям (для validation_error)
+              items:
+                type: object
+                required: [field, message]
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
     NotificationSettings:
       type: object
       description: Настройки push и email пользователя
+      required: [push_enabled, email_enabled]
       properties:
         push_enabled:
           type: boolean
@@ -89,7 +192,24 @@ components:
     DeviceRegistration:
       type: object
       description: Токен FCM устройства Android
+      required: [platform, token]
       properties:
+        platform:
+          type: string
+          enum: [android]
+        token:
+          type: string
+          minLength: 1
+          description: Токен FCM
+    Device:
+      type: object
+      description: Зарегистрированное устройство (строка device_tokens)
+      required: [id, platform, token]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Идентификатор записи для DELETE /v1/me/devices/{id}
         platform:
           type: string
           enum: [android]
