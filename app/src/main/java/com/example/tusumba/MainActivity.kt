@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.tusumba.ui.auth.authColorScheme
+import com.example.tusumba.ui.catalog.catalogColorScheme
 import com.example.tusumba.ui.navigation.AppNavigation
 import com.example.tusumba.ui.navigation.Screen
 import com.example.tusumba.ui.theme.TusumbaTheme
@@ -29,6 +30,7 @@ class MainActivity : ComponentActivity() {
                 val route = navController.currentBackStackEntryAsState().value?.destination?.route
                 val background = when (route) {
                     Screen.SignIn.route, Screen.Registration.route -> authColorScheme().background
+                    Screen.Clubs.route, Screen.ClubDetail.route -> catalogColorScheme().surface
                     else -> MaterialTheme.colorScheme.background
                 }
                 Scaffold(

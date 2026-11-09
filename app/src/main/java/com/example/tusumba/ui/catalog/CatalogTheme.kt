@@ -9,7 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 // Цвета и шкала Material 3 из preview v1.3 задачи #18899.
-// Оформление ограничено экраном каталога; общая тема #18898 не меняется.
+// Оформление каталогов и страниц секций.
 private val LightCatalogColors =
     lightColorScheme(
         primary = Color(0xFF4455BD),
@@ -77,9 +77,12 @@ private val DarkCatalogColors =
     )
 
 @Composable
+internal fun catalogColorScheme() = if (isSystemInDarkTheme()) DarkCatalogColors else LightCatalogColors
+
+@Composable
 internal fun CatalogTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = if (isSystemInDarkTheme()) DarkCatalogColors else LightCatalogColors,
+        colorScheme = catalogColorScheme(),
         typography = Typography(),
         content = content,
     )

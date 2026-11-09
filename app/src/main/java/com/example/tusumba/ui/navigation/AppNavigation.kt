@@ -1,5 +1,6 @@
 package com.example.tusumba.ui.navigation
 
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -8,12 +9,18 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.tusumba.ui.auth.AuthScreen
 import com.example.tusumba.ui.auth.AuthViewModel
+import com.example.tusumba.ui.clubs.ClubDetailScreen
+import com.example.tusumba.ui.clubs.ClubsScreen
 import com.example.tusumba.ui.screens.CatalogScreen
 import com.example.tusumba.ui.screens.EventDetailScreen
 import com.example.tusumba.ui.screens.ProfileScreen
 
 sealed class Screen(val route: String) {
     data object Catalog : Screen("catalog")
+    data object Clubs : Screen("clubs")
+    data object ClubDetail : Screen("club_detail/{clubId}") {
+        fun createRoute(clubId: String) = "club_detail/${Uri.encode(clubId)}"
+    }
     data object EventDetail : Screen("event_detail/{eventId}") {
         fun createRoute(eventId: String) = "event_detail/$eventId"
     }
@@ -40,7 +47,25 @@ fun AppNavigation(
                 },
                 onProfileClick = {
                     navController.navigate(Screen.Profile.route)
-                }
+                },
+                onClubsClick = {
+                    navController.navigate(Screen.Clubs.route) { launchSingleTop = true }
+                },
+            )
+        }
+        composable(Screen.Clubs.route) {
+            ClubsScreen(
+                onClubClick = { clubId -> navController.navigate(Screen.ClubDetail.createRoute(clubId)) },
+                onEventsClick = { navController.popBackStack(Screen.Catalog.route, inclusive = false) },
+                onProfileClick = { navController.navigate(Screen.Profile.route) },
+            )
+        }
+        composable(Screen.ClubDetail.route) {
+            ClubDetailScreen(
+                onBackClick = { navController.popBackStack() },
+                onEventClick = { eventId ->
+                    navController.navigate(Screen.EventDetail.createRoute(eventId))
+                },
             )
         }
         composable(Screen.EventDetail.route) { backStackEntry ->
