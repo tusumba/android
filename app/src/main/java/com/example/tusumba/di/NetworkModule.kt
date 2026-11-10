@@ -2,16 +2,21 @@ package com.example.tusumba.di
 
 import com.example.tusumba.BuildConfig
 import com.example.tusumba.data.network.AuthInterceptor
+import com.example.tusumba.data.network.OffsetDateTimeSerializer
 import com.example.tusumba.data.network.TokenAuthenticator
+import com.example.tusumba.data.network.UUIDSerializer
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.modules.SerializersModule
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
+import java.time.OffsetDateTime
+import java.util.UUID
 import javax.inject.Singleton
 import kotlin.jvm.java
 
@@ -25,6 +30,10 @@ object NetworkModule {
         ignoreUnknownKeys = true
         coerceInputValues = true
         explicitNulls = false
+        serializersModule = SerializersModule {
+            contextual(UUID::class, UUIDSerializer)
+            contextual(OffsetDateTime::class, OffsetDateTimeSerializer)
+        }
     }
 
     @Provides

@@ -1,6 +1,11 @@
 package com.example.tusumba.data.auth
 
+import android.annotation.SuppressLint
+import kotlinx.serialization.Serializable
+
 /** Пользователь из ответа Identity (UserPrivate). */
+@SuppressLint("UnsafeOptInUsageError")
+@Serializable
 data class AuthUser(
     val id: String,
     val email: String,
