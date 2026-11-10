@@ -21,6 +21,7 @@ fun CatalogScreen(
     onEventClick: (String) -> Unit,
     onProfileClick: () -> Unit,
     viewModel: CatalogViewModel = hiltViewModel(),
+    onClubsClick: (() -> Unit)? = null,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     CatalogScreenContent(
@@ -31,6 +32,7 @@ fun CatalogScreen(
         onRetry = viewModel::refresh,
         onEventClick = onEventClick,
         onProfileClick = onProfileClick,
+        onClubsClick = onClubsClick,
     )
 }
 
@@ -43,6 +45,7 @@ internal fun CatalogScreenContent(
     onRetry: () -> Unit,
     onEventClick: (String) -> Unit,
     onProfileClick: () -> Unit,
+    onClubsClick: (() -> Unit)? = null,
 ) {
     CatalogTheme {
         Scaffold(
@@ -50,7 +53,7 @@ internal fun CatalogScreenContent(
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             containerColor = MaterialTheme.colorScheme.surface,
             topBar = { CatalogHeader(onProfileClick) },
-            bottomBar = { CatalogNavigation(onProfileClick) },
+            bottomBar = { CatalogNavigation(onProfileClick, onClubsClick) },
         ) { padding ->
             CatalogBody(
                 state,

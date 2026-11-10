@@ -66,7 +66,12 @@ internal fun CatalogHeader(onProfileClick: () -> Unit) {
 }
 
 @Composable
-internal fun CatalogNavigation(onProfileClick: () -> Unit) {
+internal fun CatalogNavigation(
+    onProfileClick: () -> Unit,
+    onClubsClick: (() -> Unit)? = null,
+    onEventsClick: () -> Unit = {},
+    clubsSelected: Boolean = false,
+) {
     Column {
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         NavigationBar(
@@ -75,16 +80,15 @@ internal fun CatalogNavigation(onProfileClick: () -> Unit) {
             windowInsets = WindowInsets(0, 0, 0, 0),
         ) {
             NavigationBarItem(
-                selected = true,
-                onClick = {},
+                selected = !clubsSelected,
+                onClick = onEventsClick,
                 icon = { Icon(Icons.Outlined.DateRange, null) },
                 label = { Text(stringResource(R.string.catalog_nav_events)) },
             )
-            // Эти пункты макета не имеют экранов в каркасе и не входят в #18896.
             NavigationBarItem(
-                selected = false,
-                onClick = {},
-                enabled = false,
+                selected = clubsSelected,
+                onClick = { onClubsClick?.invoke() },
+                enabled = onClubsClick != null,
                 icon = { Icon(Icons.Outlined.Menu, null) },
                 label = { Text(stringResource(R.string.catalog_nav_clubs)) },
             )
@@ -267,7 +271,7 @@ private fun CatalogChip(
 }
 
 @Composable
-private fun CatalogEventCard(event: CatalogEvent, onEventClick: (String) -> Unit) {
+internal fun CatalogEventCard(event: CatalogEvent, onEventClick: (String) -> Unit) {
     val formatter = remember {
         DateTimeFormatter.ofPattern("d MMMM", Locale.forLanguageTag("ru"))
     }

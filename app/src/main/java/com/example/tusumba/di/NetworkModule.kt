@@ -2,6 +2,7 @@ package com.example.tusumba.di
 
 import com.example.tusumba.BuildConfig
 import com.example.tusumba.data.network.AuthInterceptor
+import com.example.tusumba.data.events.infrastructure.Serializer
 import com.example.tusumba.data.network.TokenAuthenticator
 import dagger.Module
 import dagger.Provides
@@ -25,6 +26,7 @@ object NetworkModule {
         ignoreUnknownKeys = true
         coerceInputValues = true
         explicitNulls = false
+        serializersModule = Serializer.kotlinxSerializationAdapters
     }
 
     @Provides
