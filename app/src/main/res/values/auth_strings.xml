@@ -26,7 +26,7 @@
     <string name="auth_hide_password_description">Скрыть пароль</string>
     <string name="auth_required">Заполните обязательные поля.</string>
     <string name="auth_required_both">Заполните оба поля.</string>
-    <string name="auth_invalid_email">Введите корректный email или телефон.</string>
+    <string name="auth_invalid_email">Введите корректный email.</string>
     <string name="auth_invalid_nickname">Ник: от 3 до 32 символов, только латинские буквы, цифры и символы _ . -</string>
     <string name="auth_invalid_password">Пароль: от 8 до 128 символов.</string>
     <string name="auth_user_exists">Пользователь с такими данными уже зарегистрирован.</string>
