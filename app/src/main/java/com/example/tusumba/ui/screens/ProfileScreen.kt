@@ -17,7 +17,8 @@ fun ProfileScreen(
     user: AuthUser?,
     onBackClick: () -> Unit,
     onSignIn: () -> Unit,
-    onSignOut: () -> Unit
+    onSignOut: () -> Unit,
+    onMyRegistrations: (() -> Unit)? = null,
 ) {
     Scaffold(
         topBar = {
@@ -47,6 +48,11 @@ fun ProfileScreen(
             } else {
                 Text(user.nickname, style = MaterialTheme.typography.headlineSmall)
                 Text(user.email, style = MaterialTheme.typography.bodyMedium)
+                if (onMyRegistrations != null) {
+                    Button(onClick = onMyRegistrations) {
+                        Text(stringResource(R.string.my_registrations_title))
+                    }
+                }
                 OutlinedButton(onClick = onSignOut) {
                     Text(stringResource(R.string.profile_sign_out))
                 }
