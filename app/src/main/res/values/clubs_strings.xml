@@ -6,7 +6,6 @@
     <string name="clubs_search_empty">Ничего не найдено.</string>
     <string name="clubs_catalog_error">Не удалось загрузить каталог секций. Попробуйте позже.</string>
     <string name="clubs_search_error">Не удалось выполнить поиск. Попробуйте позже.</string>
-    <string name="clubs_retry">Повторить</string>
     <string name="clubs_load_more">Показать ещё</string>
     <string name="clubs_back">Назад</string>
     <string name="clubs_back_to_catalog">К каталогу секций</string>
