@@ -2,6 +2,7 @@ package com.example.tusumba.ui.navigation
 
 import android.net.Uri
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
@@ -35,6 +36,11 @@ fun AppNavigation(
     modifier: Modifier = Modifier,
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
+    LaunchedEffect(navController, authViewModel) {
+        authViewModel.signedOut.collect {
+            navController.navigate(Screen.SignIn.route) { launchSingleTop = true }
+        }
+    }
     NavHost(
         navController = navController,
         startDestination = Screen.Catalog.route,
@@ -80,7 +86,8 @@ fun AppNavigation(
                 user = authViewModel.user,
                 onBackClick = { navController.popBackStack() },
                 onSignIn = { navController.navigate(Screen.SignIn.route) { launchSingleTop = true } },
-                onSignOut = authViewModel::signOut
+                onSignOut = authViewModel::signOut,
+                isSigningOut = authViewModel.isSigningOut,
             )
         }
         composable(Screen.SignIn.route) {
