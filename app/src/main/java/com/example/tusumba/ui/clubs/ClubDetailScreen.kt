@@ -32,6 +32,10 @@ import com.example.tusumba.data.catalog.Money
 import com.example.tusumba.data.events.model.EventCard
 import com.example.tusumba.ui.catalog.CatalogEventCard
 import com.example.tusumba.ui.catalog.CatalogTheme
+import com.example.tusumba.ui.components.ContentEmpty
+import com.example.tusumba.ui.components.ContentError
+import com.example.tusumba.ui.components.ContentLoading
+import com.example.tusumba.ui.components.ContentStateAction
 import java.util.Locale
 
 @Composable
@@ -81,11 +85,14 @@ internal fun ClubDetailScreenContent(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 when (state) {
-                    ClubDetailContent.Loading -> item { ClubsLoading() }
+                    ClubDetailContent.Loading -> item { ContentLoading() }
                     ClubDetailContent.Unavailable -> item {
-                        ClubsFeedback(R.string.club_unavailable, onBackClick, R.string.clubs_back_to_catalog)
+                        ContentEmpty(
+                            message = R.string.club_unavailable,
+                            action = ContentStateAction(R.string.clubs_back_to_catalog, onBackClick),
+                        )
                     }
-                    ClubDetailContent.Error -> item { ClubsFeedback(R.string.club_page_error, onRetry) }
+                    ClubDetailContent.Error -> item { ContentError(R.string.club_page_error, onRetry) }
                     is ClubDetailContent.Loaded -> {
                         val club = state.club
                         item(key = "title") {
@@ -119,12 +126,12 @@ internal fun ClubDetailScreenContent(
                             )
                         }
                         when (val events = state.events) {
-                            ClubEventsContent.Loading -> item { ClubsLoading() }
+                            ClubEventsContent.Loading -> item { ContentLoading() }
                             ClubEventsContent.Error -> item {
-                                ClubsFeedback(R.string.club_events_error, onRetryEvents)
+                                ContentError(R.string.club_events_error, onRetryEvents)
                             }
                             ClubEventsContent.Empty -> item {
-                                ClubsFeedback(R.string.club_events_empty)
+                                ContentEmpty(R.string.club_events_empty)
                             }
                             is ClubEventsContent.Data -> {
                                 items(events.events, key = { it.id }) { event ->

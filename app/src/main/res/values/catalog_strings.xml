@@ -26,7 +26,6 @@
     <string name="catalog_reset">Сбросить фильтры</string>
     <string name="catalog_error_title">Не удалось загрузить данные</string>
     <string name="catalog_error_description">Сервер временно недоступен или пропало соединение. Попробуйте ещё раз.</string>
-    <string name="catalog_retry">Повторить</string>
     <string name="catalog_nav_events">Афиша</string>
     <string name="catalog_nav_clubs">Секции</string>
     <string name="catalog_nav_friends">Друзья</string>
