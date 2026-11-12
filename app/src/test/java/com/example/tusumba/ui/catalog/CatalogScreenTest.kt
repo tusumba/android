@@ -1,20 +1,15 @@
 package com.example.tusumba.ui.catalog
 
-import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.runtime.*
+import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollToNode
-import androidx.compose.ui.test.performTextInput
 import com.example.tusumba.data.catalog.CatalogEvent
 import com.example.tusumba.data.catalog.CatalogFilters
 import com.example.tusumba.data.catalog.EventStatus
 import com.example.tusumba.data.catalog.Money
 import com.example.tusumba.ui.screens.CatalogScreenContent
 import java.time.LocalDate
-import org.junit.Assert.assertEquals
+import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -23,129 +18,186 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
+@Config(sdk = [34], qualifiers = "ru-rRU-w390dp-h844dp-mdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class CatalogScreenTest {
     @get:Rule val compose = createComposeRule()
-
-    @Test
-    fun cardContainsRequiredFieldsAndOpensItsEvent() {
-        var openedId: String? = null
-        val event =
-            CatalogEvent(
-                id = "test-event",
-                title = "Научный лекторий",
-                date = LocalDate.of(2026, 11, 26),
-                placeAddress = "Библиотека",
-                isFree = true,
-                price = null,
-                status = EventStatus.CONFIRMED,
-            )
-        show(
-            CatalogUiState(content = CatalogContent.Events(listOf(event))),
-            onEvent = { openedId = it },
+    private val event =
+        CatalogEvent(
+            "test-event",
+            "Научный лекторий",
+            LocalDate.of(2026, 11, 26),
+            "Библиотека",
+            false,
+            Money(90000),
+            EventStatus.CONFIRMED,
         )
 
-        compose
-            .onNodeWithTag("catalog_list")
-            .performScrollToNode(androidx.compose.ui.test.hasText("Научный лекторий"))
+    @Test
+    fun cardShowsRequiredFieldsServerTotalAndOpensItsId() {
+        var opened: String? = null
+        show(
+            CatalogUiState(content = CatalogContent.Events(listOf(event), total = 41)),
+            onEvent = { opened = it },
+        )
+        compose.onNodeWithText("Найдено: 41").assertIsDisplayed()
+        scrollToText("Подробнее")
         compose.onNodeWithText("Научный лекторий").assertIsDisplayed()
-        compose.onNodeWithText("ПОДТВЕРЖДЕНО").assertIsDisplayed()
         compose.onNodeWithText("26 ноября").assertIsDisplayed()
         compose.onNodeWithText("Библиотека").assertIsDisplayed()
-        compose.onNodeWithText("Бесплатно").assertIsDisplayed()
-        compose
-            .onNodeWithTag("catalog_list")
-            .performScrollToNode(androidx.compose.ui.test.hasText("Подробнее"))
-        compose.onNodeWithText("Подробнее").performClick()
-        assertEquals("test-event", openedId)
-    }
-
-    @Test
-    fun paidCardShowsPriceInRublesAndStatus() {
-        val event =
-            CatalogEvent(
-                id = "paid-event",
-                title = "Мастерская керамики",
-                date = LocalDate.of(2026, 11, 22),
-                placeAddress = "Арт-пространство",
-                isFree = false,
-                price = Money(90000),
-                status = EventStatus.NOT_CONFIRMED,
-            )
-        show(CatalogUiState(content = CatalogContent.Events(listOf(event))))
-
-        compose
-            .onNodeWithTag("catalog_list")
-            .performScrollToNode(androidx.compose.ui.test.hasText("900 ₽"))
         compose.onNodeWithText("900 ₽").assertIsDisplayed()
-        compose.onNodeWithText("НЕ ПОДТВЕРЖДЕНО").assertIsDisplayed()
+        compose.onNodeWithText("Подробнее").performClick()
+        assertEquals("test-event", opened)
     }
 
     @Test
-    fun isFreeChipSendsTheContractFilter() {
-        var isFree: Boolean? = null
-        show(CatalogUiState(CatalogFilters(), CatalogContent.Empty), onIsFree = { isFree = it })
-
+    fun typePlaceAndMultipleStatusesAreCombined() {
+        var selected = CatalogFilters()
+        show(CatalogUiState(content = CatalogContent.Empty), onFilters = { selected = it })
         compose.onNodeWithText("Платные").performClick()
-        assertEquals(false, isFree)
-        compose.onNodeWithText("Бесплатные").performClick()
-        assertEquals(true, isFree)
+        compose.onNodeWithTag("catalog_more_filters").performClick()
+        compose.onNodeWithTag("catalog_place").performScrollTo().performTextInput("НГУ")
+        compose.onNodeWithTag("catalog_status_NOT_CONFIRMED").performScrollTo().performClick()
+        compose.onNodeWithTag("catalog_status_CONFIRMED").performScrollTo().performClick()
+        assertEquals(false, selected.isFree)
+        assertEquals("НГУ", selected.place)
+        assertEquals(setOf(EventStatus.CONFIRMED, EventStatus.NOT_CONFIRMED), selected.statuses)
+        compose.onNodeWithTag("catalog_status_NOT_CONFIRMED").assertIsSelected()
+        compose.onNodeWithTag("catalog_status_CONFIRMED").assertIsSelected()
     }
 
     @Test
-    fun emptyStateResetsFiltersAndSearchSendsInput() {
-        var query = ""
+    fun datePickerConfirmsAndClearsOnlyTheSelectedDate() {
+        val from = LocalDate.of(2026, 11, 20)
+        val to = LocalDate.of(2026, 11, 30)
+        var selected = CatalogFilters(dateFrom = from, dateTo = to, isFree = true)
+        show(CatalogUiState(selected, CatalogContent.Empty), onFilters = { selected = it })
+        compose.onNodeWithTag("catalog_date_from").performScrollTo().performClick()
+        compose.onNodeWithText("Выбрать").performClick()
+        assertEquals(from, selected.dateFrom)
+        compose.onNodeWithTag("catalog_date_from").performClick()
+        compose.onNodeWithText("Очистить дату").performClick()
+        assertNull(selected.dateFrom)
+        assertEquals(to, selected.dateTo)
+        assertEquals(true, selected.isFree)
+        compose.onNodeWithTag("catalog_date_from").assertTextContains("Сегодня")
+    }
+
+    @Test
+    fun searchAndEmptyFilterResetAreAvailable() {
+        var filters = CatalogFilters()
         var reset = false
         show(
-            CatalogUiState(CatalogFilters(), CatalogContent.Empty),
-            onQuery = { query = it },
+            CatalogUiState(content = CatalogContent.Empty),
+            onFilters = { filters = it },
             onReset = { reset = true },
         )
-
         compose.onNodeWithTag("catalog_search").performTextInput("парк")
-        assertEquals("парк", query)
-        compose
-            .onNodeWithTag("catalog_list")
-            .performScrollToNode(androidx.compose.ui.test.hasText("Сбросить фильтры"))
-        compose.onNodeWithText("Мероприятия не найдены").assertIsDisplayed()
+        assertEquals("парк", filters.query)
+        scrollToText("Сбросить фильтры")
+        compose.onNodeWithText("По выбранным фильтрам ничего не найдено.").assertIsDisplayed()
         compose.onNodeWithText("Сбросить фильтры").performClick()
-        assertEquals(true, reset)
+        assertTrue(reset)
     }
 
     @Test
-    fun errorOffersRetryAndUnavailableRoutesAreDisabled() {
+    fun catalogErrorOffersRetry() {
         var retried = false
         show(CatalogUiState(content = CatalogContent.Error), onRetry = { retried = true })
-
-        compose.onNodeWithText("Не удалось загрузить данные").assertIsDisplayed()
+        scrollToText("Повторить")
+        compose
+            .onNodeWithText("Не удалось загрузить каталог мероприятий. Попробуйте позже.")
+            .assertIsDisplayed()
         compose.onNodeWithText("Повторить").performClick()
-        assertEquals(true, retried)
-        compose.onNodeWithText("Секции").assertIsNotEnabled()
-        compose.onNodeWithText("Друзья").assertIsNotEnabled()
+        assertTrue(retried)
     }
 
     @Test
-    fun loadingAndProfileCallbackAreAvailableWithoutRepository() {
-        var profileOpened = false
-        show(CatalogUiState(), onProfile = { profileOpened = true })
+    fun emptyCatalogUsesTheRequiredMessage() {
+        show(CatalogUiState(content = CatalogContent.Empty))
+        scrollToText("мероприятий пока нет.")
+        compose.onNodeWithText("мероприятий пока нет.").assertIsDisplayed()
+    }
 
-        compose.onNodeWithTag("catalog_loading").assertIsDisplayed()
+    @Test
+    fun loadingKeepsSearchEditableAndProfileAvailable() {
+        var filters = CatalogFilters()
+        var opened = false
+        show(CatalogUiState(), onFilters = { filters = it }, onProfile = { opened = true })
+        compose.onNodeWithTag("catalog_search").assertIsDisplayed().performTextInput("Лекторий")
+        assertEquals("Лекторий", filters.query)
+        compose.onNodeWithTag("catalog_search").assertTextContains("Лекторий")
         compose.onNodeWithText("Профиль").performClick()
-        assertEquals(true, profileOpened)
+        compose.onNodeWithText("Друзья").assertIsNotEnabled()
+        assertTrue(opened)
+    }
+
+    @Test
+    fun nextPageErrorKeepsCardsAndRetriesWithoutResettingFilters() {
+        var more = false
+        val content =
+            CatalogContent.Events(listOf(event), total = 41, hasMore = true, loadMoreError = true)
+        show(CatalogUiState(content = content), onMore = { more = true })
+        scrollToText("Повторить")
+        compose.onNodeWithText("Не удалось загрузить следующую страницу.").assertIsDisplayed()
+        compose.onNodeWithTag("catalog_load_more").performClick()
+        assertTrue(more)
+    }
+
+    @Test
+    fun loadingNextPageDisablesDuplicateRequests() {
+        val content =
+            CatalogContent.Events(listOf(event), total = 41, hasMore = true, isLoadingMore = true)
+        show(CatalogUiState(content = content))
+        compose.onNodeWithTag("catalog_list").performScrollToNode(hasTestTag("catalog_load_more"))
+        compose.onNodeWithTag("catalog_load_more").assertIsNotEnabled()
+    }
+
+    @Test
+    fun filterRequestFailureShowsTheRequiredMessageAndOffersRetry() {
+        var retried = false
+        show(
+            CatalogUiState(CatalogFilters(isFree = false), CatalogContent.Error),
+            onRetry = { retried = true },
+        )
+        scrollToText("Повторить")
+        compose
+            .onNodeWithText("Не удалось применить фильтры. Попробуйте позже.")
+            .assertIsDisplayed()
+        compose.onNodeWithText("Повторить").performClick()
+        assertTrue(retried)
+    }
+
+    private fun scrollToText(text: String) {
+        compose.onNodeWithTag("catalog_list").performScrollToNode(hasText(text))
     }
 
     private fun show(
         state: CatalogUiState,
-        onQuery: (String) -> Unit = {},
-        onIsFree: (Boolean?) -> Unit = {},
+        onFilters: (CatalogFilters) -> Unit = {},
         onReset: () -> Unit = {},
         onRetry: () -> Unit = {},
+        onMore: () -> Unit = {},
         onEvent: (String) -> Unit = {},
         onProfile: () -> Unit = {},
     ) {
         compose.setContent {
-            CatalogScreenContent(state, onQuery, onIsFree, onReset, onRetry, onEvent, onProfile)
+            var current by remember { mutableStateOf(state) }
+            CatalogScreenContent(
+                state = current,
+                onFiltersChange = {
+                    current = current.copy(filters = it)
+                    onFilters(it)
+                },
+                onResetFilters = {
+                    current = current.copy(filters = CatalogFilters())
+                    onReset()
+                },
+                onRetry = onRetry,
+                onLoadMore = onMore,
+                onEventClick = onEvent,
+                onProfileClick = onProfile,
+            )
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.example.tusumba.ui.catalog
 
 import com.example.tusumba.data.catalog.CatalogEvent
+import com.example.tusumba.data.catalog.CatalogFilterError
 import com.example.tusumba.data.catalog.CatalogFilters
 
 data class CatalogUiState(
@@ -11,9 +12,18 @@ data class CatalogUiState(
 sealed interface CatalogContent {
     data object Loading : CatalogContent
 
-    data class Events(val events: List<CatalogEvent>) : CatalogContent
+    data class Events(
+        val events: List<CatalogEvent>,
+        val total: Int = events.size,
+        val page: Int = 1,
+        val hasMore: Boolean = false,
+        val isLoadingMore: Boolean = false,
+        val loadMoreError: Boolean = false,
+    ) : CatalogContent
 
     data object Empty : CatalogContent
 
     data object Error : CatalogContent
+
+    data class InvalidFilters(val error: CatalogFilterError) : CatalogContent
 }

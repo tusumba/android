@@ -1,21 +1,11 @@
 package com.example.tusumba.ui.catalog
 
-import com.example.tusumba.data.catalog.CatalogEvent
-import com.example.tusumba.data.catalog.EventsRepository
-import com.example.tusumba.data.catalog.MockEventsRepository
+import com.example.tusumba.data.catalog.*
 import java.io.IOException
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.awaitCancellation
-import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.runCurrent
-import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
+import java.time.LocalDate
+import kotlinx.coroutines.*
+import kotlinx.coroutines.test.*
+import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TestWatcher
@@ -33,119 +23,234 @@ class CatalogViewModelTest {
         }
 
     @Test
-    fun loadingIsShownUntilRepositoryCompletes() = runTest {
-        val response = CompletableDeferred<List<CatalogEvent>>()
-        val viewModel = CatalogViewModel(repository { response.await() })
+    fun firstPageKeepsLoadingUntilResponseAndUsesServerTotal() = runTest {
+        val result = CompletableDeferred<CatalogPage>()
+        val repo = FakeRepository { _, _ -> result.await() }
+        val model = CatalogViewModel(repo)
         runCurrent()
-        assertEquals(CatalogContent.Loading, viewModel.state.value.content)
-
-        val events = MockEventsRepository().getEvents()
-        response.complete(events)
+        assertEquals(CatalogContent.Loading, model.state.value.content)
+        result.complete(page("one", "two", total = 3))
         advanceUntilIdle()
-
-        assertEquals(CatalogContent.Events(events), viewModel.state.value.content)
+        val content = content(model)
+        assertEquals(listOf("one", "two"), content.events.map { it.id })
+        assertEquals(3, content.total)
+        assertTrue(content.hasMore)
+        assertEquals(listOf(CatalogFilters() to 1), repo.requests)
     }
 
     @Test
-    fun repositoryCanBeReplacedWithoutChangingTheScreen() = runTest {
-        val viewModel = CatalogViewModel(repository { emptyList() })
+    fun paginationAppendsOnceAndStopsOnLastPage() = runTest {
+        val second = CompletableDeferred<CatalogPage>()
+        val repo = FakeRepository { _, number ->
+            if (number == 1) page("one", "two", total = 3) else second.await()
+        }
+        val model = CatalogViewModel(repo)
         advanceUntilIdle()
-
-        assertEquals(CatalogContent.Empty, viewModel.state.value.content)
+        model.loadMore()
+        model.loadMore()
+        runCurrent()
+        assertTrue(content(model).isLoadingMore)
+        assertEquals(listOf(1, 2), repo.requests.map { it.second })
+        second.complete(page("two", "three", total = 3, number = 2))
+        advanceUntilIdle()
+        assertEquals(listOf("one", "two", "three"), content(model).events.map { it.id })
+        assertFalse(content(model).hasMore)
+        model.loadMore()
+        advanceUntilIdle()
+        assertEquals(2, repo.requests.size)
     }
 
     @Test
-    fun retryRecoversAfterFailure() = runTest {
-        var calls = 0
-        val viewModel =
-            CatalogViewModel(
-                repository {
-                    calls++
-                    if (calls == 1) throw IOException("Unavailable")
-                    MockEventsRepository().getEvents()
-                }
+    fun nextPageErrorKeepsCardsAndRetriesTheSamePage() = runTest {
+        var failed = false
+        val repo = FakeRepository { _, number ->
+            if (number == 1) page("one", "two", total = 3)
+            else if (!failed) {
+                failed = true
+                throw IOException("offline")
+            } else page("three", total = 3, number = 2)
+        }
+        val model = CatalogViewModel(repo)
+        advanceUntilIdle()
+        model.loadMore()
+        advanceUntilIdle()
+        assertTrue(content(model).loadMoreError)
+        assertEquals(listOf("one", "two"), content(model).events.map { it.id })
+        model.loadMore()
+        advanceUntilIdle()
+        assertEquals(listOf(1, 2, 2), repo.requests.map { it.second })
+        assertEquals(listOf("one", "two", "three"), content(model).events.map { it.id })
+    }
+
+    @Test
+    fun combinedFiltersStartAtPageOneAndReplacePreviousPages() = runTest {
+        val filters =
+            CatalogFilters(
+                isFree = false,
+                dateFrom = LocalDate.of(2026, 11, 12),
+                dateTo = LocalDate.of(2026, 12, 1),
+                place = "НГУ",
+                statuses = setOf(EventStatus.CONFIRMED, EventStatus.NOT_CONFIRMED),
             )
+        val repo = FakeRepository { current, number ->
+            if (current.isActive) page("filtered", total = 1)
+            else page("old" + number, total = 5, number = number)
+        }
+        val model = CatalogViewModel(repo)
         advanceUntilIdle()
-        assertEquals(CatalogContent.Error, viewModel.state.value.content)
-
-        viewModel.refresh()
-        assertEquals(CatalogContent.Loading, viewModel.state.value.content)
+        model.loadMore()
         advanceUntilIdle()
-
-        assertTrue(viewModel.state.value.content is CatalogContent.Events)
-        assertEquals(2, calls)
+        model.setFilters(filters)
+        advanceUntilIdle()
+        assertEquals(filters to 1, repo.requests.last())
+        assertEquals(listOf("filtered"), content(model).events.map { it.id })
+        model.resetFilters()
+        advanceUntilIdle()
+        assertEquals(CatalogFilters() to 1, repo.requests.last())
+        assertEquals(CatalogFilters(), model.state.value.filters)
+        assertEquals(listOf("old1"), content(model).events.map { it.id })
     }
 
     @Test
-    fun filteringAndResetDoNotReloadTheRepository() = runTest {
-        var calls = 0
-        val viewModel =
-            CatalogViewModel(
-                repository {
-                    calls++
-                    MockEventsRepository().getEvents()
-                }
+    fun textChangesDebounceToTheLastValue() = runTest {
+        val repo = FakeRepository { _, _ -> page("one", total = 1) }
+        val model = CatalogViewModel(repo)
+        advanceUntilIdle()
+        model.setFilters(CatalogFilters(place = "Н"))
+        runCurrent()
+        model.setFilters(CatalogFilters(place = "НГ"))
+        runCurrent()
+        model.setFilters(CatalogFilters(place = "НГУ"))
+        runCurrent()
+        advanceTimeBy(299)
+        assertEquals(1, repo.requests.size)
+        advanceTimeBy(1)
+        runCurrent()
+        assertEquals(2, repo.requests.size)
+        assertEquals("НГУ", repo.requests.last().first.place)
+    }
+
+    @Test
+    fun obsoleteNextPageCannotOverwriteAChangedFilter() = runTest {
+        val late = CompletableDeferred<CatalogPage>()
+        val repo = FakeRepository { filters, number ->
+            when {
+                number == 2 -> withContext(NonCancellable) { late.await() }
+                filters.isFree == true -> page("new", total = 1)
+                else -> page("old", total = 4)
+            }
+        }
+        val model = CatalogViewModel(repo)
+        advanceUntilIdle()
+        model.loadMore()
+        runCurrent()
+        model.setFilters(CatalogFilters(isFree = true))
+        runCurrent()
+        assertEquals(listOf("new"), content(model).events.map { it.id })
+        late.complete(page("obsolete", total = 4, number = 2))
+        advanceUntilIdle()
+        assertEquals(listOf("new"), content(model).events.map { it.id })
+        assertFalse(content(model).loadMoreError)
+    }
+
+    @Test
+    fun invalidRangesAndOverlongInputDoNotRequestTheServer() = runTest {
+        val repo = FakeRepository { _, _ -> page("one", total = 1) }
+        val model = CatalogViewModel(repo)
+        advanceUntilIdle()
+        val invalid =
+            listOf(
+                CatalogFilters(
+                    dateFrom = LocalDate.of(2026, 12, 1),
+                    dateTo = LocalDate.of(2026, 11, 1),
+                ),
+                CatalogFilters(query = "a".repeat(101)),
+                CatalogFilters(place = "a".repeat(201)),
             )
+        for (filters in invalid) {
+            model.setFilters(filters)
+            advanceUntilIdle()
+            assertTrue(model.state.value.content is CatalogContent.InvalidFilters)
+        }
+        assertEquals(1, repo.requests.size)
+        model.resetFilters()
         advanceUntilIdle()
-
-        viewModel.setQuery("МАСТЕРСКАЯ")
-        viewModel.setIsFree(true)
-        assertEquals(CatalogContent.Empty, viewModel.state.value.content)
-
-        viewModel.setIsFree(false)
-        val content = viewModel.state.value.content as CatalogContent.Events
-        assertEquals(listOf("Мастерская керамики"), content.events.map { it.title })
-
-        viewModel.resetFilters()
-        assertEquals(6, (viewModel.state.value.content as CatalogContent.Events).events.size)
-        assertEquals("", viewModel.state.value.filters.query)
-        assertEquals(null, viewModel.state.value.filters.isFree)
-        assertEquals(1, calls)
+        assertTrue(model.state.value.content is CatalogContent.Events)
     }
 
     @Test
-    fun filtersChangedDuringLoadingAreAppliedToTheResponse() = runTest {
-        val viewModel = CatalogViewModel(MockEventsRepository())
-        viewModel.setIsFree(false)
+    fun firstPageErrorRetriesWithTheSameFiltersAndCanBecomeEmpty() = runTest {
+        var fail = false
+        val repo = FakeRepository { filters, _ ->
+            if (filters.isFree == true && !fail) {
+                fail = true
+                throw IOException("offline")
+            }
+            CatalogPage(emptyList(), 0, 1, 20)
+        }
+        val model = CatalogViewModel(repo)
         advanceUntilIdle()
-
-        val content = viewModel.state.value.content as CatalogContent.Events
-        assertEquals(
-            listOf("Музыка под открытым небом", "Мастерская керамики", "Турнир по шахматам"),
-            content.events.map { it.title },
-        )
+        assertEquals(CatalogContent.Empty, model.state.value.content)
+        model.setFilters(CatalogFilters(isFree = true))
+        advanceUntilIdle()
+        assertEquals(CatalogContent.Error, model.state.value.content)
+        model.refresh()
+        advanceUntilIdle()
+        assertEquals(CatalogContent.Empty, model.state.value.content)
+        assertEquals(CatalogFilters(isFree = true) to 1, repo.requests.last())
     }
 
     @Test
-    fun retryCancelsPreviousLoadWithoutShowingAnError() = runTest {
+    fun refreshCancelsTheOldRequestWithoutShowingAnError() = runTest {
         var calls = 0
         var cancelled = false
-        val viewModel =
-            CatalogViewModel(
-                repository {
-                    calls++
-                    if (calls == 1) {
-                        try {
-                            awaitCancellation()
-                        } finally {
-                            cancelled = true
-                        }
-                    }
-                    emptyList()
+        val repo = FakeRepository { _, _ ->
+            calls++
+            if (calls == 1) {
+                try {
+                    awaitCancellation()
+                } finally {
+                    cancelled = true
                 }
-            )
+            }
+            page("new", total = 1)
+        }
+        val model = CatalogViewModel(repo)
         runCurrent()
-
-        viewModel.refresh()
+        model.refresh()
         advanceUntilIdle()
-
         assertTrue(cancelled)
-        assertEquals(CatalogContent.Empty, viewModel.state.value.content)
-        assertEquals(2, calls)
+        assertEquals(listOf("new"), content(model).events.map { it.id })
     }
 
-    private fun repository(load: suspend () -> List<CatalogEvent>) =
-        object : EventsRepository {
-            override suspend fun getEvents() = load()
+    private fun content(model: CatalogViewModel) =
+        model.state.value.content as CatalogContent.Events
+
+    private fun page(vararg ids: String, total: Int, number: Int = 1) =
+        CatalogPage(
+            ids.map {
+                CatalogEvent(
+                    it,
+                    it,
+                    LocalDate.of(2026, 11, 20),
+                    "НГУ",
+                    true,
+                    null,
+                    EventStatus.CONFIRMED,
+                )
+            },
+            total,
+            number,
+            2,
+        )
+
+    private class FakeRepository(val answer: suspend (CatalogFilters, Int) -> CatalogPage) :
+        EventsRepository {
+        val requests = mutableListOf<Pair<CatalogFilters, Int>>()
+
+        override suspend fun getEvents(filters: CatalogFilters, page: Int): CatalogPage {
+            requests += filters to page
+            return answer(filters, page)
         }
+    }
 }
