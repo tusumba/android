@@ -9,6 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.tusumba.data.catalog.CatalogFilters
 import com.example.tusumba.ui.catalog.CatalogBody
 import com.example.tusumba.ui.catalog.CatalogHeader
 import com.example.tusumba.ui.catalog.CatalogNavigation
@@ -26,10 +27,10 @@ fun CatalogScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     CatalogScreenContent(
         state = state,
-        onQueryChange = viewModel::setQuery,
-        onIsFreeChange = viewModel::setIsFree,
+        onFiltersChange = viewModel::setFilters,
         onResetFilters = viewModel::resetFilters,
         onRetry = viewModel::refresh,
+        onLoadMore = viewModel::loadMore,
         onEventClick = onEventClick,
         onProfileClick = onProfileClick,
         onClubsClick = onClubsClick,
@@ -39,10 +40,10 @@ fun CatalogScreen(
 @Composable
 internal fun CatalogScreenContent(
     state: CatalogUiState,
-    onQueryChange: (String) -> Unit,
-    onIsFreeChange: (Boolean?) -> Unit,
+    onFiltersChange: (CatalogFilters) -> Unit,
     onResetFilters: () -> Unit,
     onRetry: () -> Unit,
+    onLoadMore: () -> Unit,
     onEventClick: (String) -> Unit,
     onProfileClick: () -> Unit,
     onClubsClick: (() -> Unit)? = null,
@@ -57,10 +58,10 @@ internal fun CatalogScreenContent(
         ) { padding ->
             CatalogBody(
                 state,
-                onQueryChange,
-                onIsFreeChange,
+                onFiltersChange,
                 onResetFilters,
                 onRetry,
+                onLoadMore,
                 onEventClick,
                 Modifier.padding(padding),
             )
