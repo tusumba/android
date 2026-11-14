@@ -36,6 +36,10 @@ import com.example.tusumba.R
 import com.example.tusumba.ui.catalog.CatalogHeader
 import com.example.tusumba.ui.catalog.CatalogNavigation
 import com.example.tusumba.ui.catalog.CatalogTheme
+import com.example.tusumba.ui.components.ContentEmpty
+import com.example.tusumba.ui.components.ContentError
+import com.example.tusumba.ui.components.ContentLoading
+import com.example.tusumba.ui.components.ContentStateAction
 
 @Composable
 fun ClubsScreen(
@@ -111,14 +115,17 @@ internal fun ClubsScreenContent(
                     )
                 }
                 when (val content = state.content) {
-                    ClubsContent.Loading -> item(key = "loading") { ClubsLoading() }
-                    ClubsContent.Error -> item(key = "error") { ClubsFeedback(error, onRetry = onRetry) }
+                    ClubsContent.Loading -> item(key = "loading") { ContentLoading() }
+                    ClubsContent.Error -> item(key = "error") { ContentError(error, onRetry) }
                     ClubsContent.Empty -> item(key = "empty") {
-                        ClubsFeedback(
-                            message = if (state.query.isBlank()) R.string.clubs_empty else R.string.clubs_search_empty,
-                            onRetry = if (state.query.isBlank()) null else { { onQueryChange("") } },
-                            action = R.string.clubs_clear_search,
-                        )
+                        if (state.query.isBlank()) {
+                            ContentEmpty(R.string.clubs_empty)
+                        } else {
+                            ContentEmpty(
+                                message = R.string.clubs_search_empty,
+                                action = ContentStateAction(R.string.clubs_clear_search) { onQueryChange("") },
+                            )
+                        }
                     }
                     is ClubsContent.Data -> {
                         items(content.clubs, key = { it.id }) { club ->

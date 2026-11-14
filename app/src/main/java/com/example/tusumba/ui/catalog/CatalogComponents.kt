@@ -27,7 +27,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -37,6 +36,11 @@ import com.example.tusumba.data.catalog.CatalogEvent
 import com.example.tusumba.data.catalog.CatalogFilters
 import com.example.tusumba.data.catalog.EventStatus
 import com.example.tusumba.data.catalog.formatRubles
+import com.example.tusumba.ui.components.ContentEmpty
+import com.example.tusumba.ui.components.ContentError
+import com.example.tusumba.ui.components.ContentLoading
+import com.example.tusumba.ui.components.ContentStateAction
+import com.example.tusumba.ui.components.ContentStateIllustration
 import com.example.tusumba.ui.screens.CatalogScreenContent
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -122,16 +126,14 @@ internal fun CatalogBody(
     when (val content = state.content) {
         CatalogContent.Loading -> CatalogLoading(modifier)
         CatalogContent.Error ->
-            CatalogFeedback(
-                R.string.catalog_error_title,
-                R.string.catalog_error_description,
-                R.string.catalog_retry,
-                Icons.Outlined.Info,
-                onRetry,
-                modifier
+            ContentError(
+                message = R.string.catalog_error_description,
+                onRetry = onRetry,
+                modifier = modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .testTag("catalog_error"),
+                illustration = ContentStateIllustration(R.string.catalog_error_title, Icons.Outlined.Info),
             )
         is CatalogContent.Events,
         CatalogContent.Empty -> {
@@ -166,13 +168,11 @@ internal fun CatalogBody(
                 }
                 if (events.isEmpty()) {
                     item(key = "empty") {
-                        CatalogFeedback(
-                            R.string.catalog_empty_title,
-                            R.string.catalog_empty_description,
-                            R.string.catalog_reset,
-                            Icons.Outlined.Search,
-                            onResetFilters,
-                            Modifier.testTag("catalog_empty"),
+                        ContentEmpty(
+                            message = R.string.catalog_empty_description,
+                            modifier = Modifier.testTag("catalog_empty"),
+                            action = ContentStateAction(R.string.catalog_reset, onResetFilters),
+                            illustration = ContentStateIllustration(R.string.catalog_empty_title, Icons.Outlined.Search),
                         )
                     }
                 }
@@ -388,65 +388,26 @@ private fun EventMetadata(icon: ImageVector, text: String) {
 }
 
 @Composable
-private fun CatalogFeedback(
-    title: Int,
-    description: Int,
-    action: Int,
-    icon: ImageVector,
-    onAction: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 48.dp).semantics {
-            liveRegion = LiveRegionMode.Polite
-        },
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Surface(
-            shape = RoundedCornerShape(22.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant,
-        ) {
-            Icon(icon, null, Modifier.padding(20.dp).size(30.dp))
-        }
-        Spacer(Modifier.height(18.dp))
-        Text(
-            stringResource(title),
-            Modifier.semantics { heading() },
-            style = MaterialTheme.typography.headlineSmall,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(12.dp))
-        Text(
-            stringResource(description),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(22.dp))
-        Button(onAction, shape = RoundedCornerShape(11.dp)) { Text(stringResource(action)) }
-    }
-}
-
-@Composable
 private fun CatalogLoading(modifier: Modifier = Modifier) {
-    val label = stringResource(R.string.catalog_loading)
-    LazyColumn(
-        modifier.fillMaxSize().testTag("catalog_loading").semantics {
-            contentDescription = label
-            progressBarRangeInfo = ProgressBarRangeInfo.Indeterminate
-        },
-        contentPadding = PaddingValues(18.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ContentLoading(
+        modifier = modifier.fillMaxSize().testTag("catalog_loading"),
+        label = R.string.catalog_loading,
     ) {
-        item { Skeleton(Modifier.fillMaxWidth(0.46f).height(33.dp)) }
-        item { Skeleton(Modifier.fillMaxWidth(0.62f).height(13.dp)) }
-        items(3) {
-            OutlinedCard(shape = RoundedCornerShape(16.dp)) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Skeleton(Modifier.fillMaxWidth().height(126.dp))
-                    Skeleton(Modifier.fillMaxWidth(0.8f).height(15.dp))
-                    Skeleton(Modifier.fillMaxWidth(0.55f).height(13.dp))
-                    Skeleton(Modifier.fillMaxWidth(0.95f).height(32.dp))
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(18.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            item { Skeleton(Modifier.fillMaxWidth(0.46f).height(33.dp)) }
+            item { Skeleton(Modifier.fillMaxWidth(0.62f).height(13.dp)) }
+            items(3) {
+                OutlinedCard(shape = RoundedCornerShape(16.dp)) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Skeleton(Modifier.fillMaxWidth().height(126.dp))
+                        Skeleton(Modifier.fillMaxWidth(0.8f).height(15.dp))
+                        Skeleton(Modifier.fillMaxWidth(0.55f).height(13.dp))
+                        Skeleton(Modifier.fillMaxWidth(0.95f).height(32.dp))
+                    }
                 }
             }
         }
