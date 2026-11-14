@@ -40,6 +40,7 @@ fun ProfileScreen(
     onBackClick: () -> Unit,
     onSignIn: () -> Unit,
     onSignOut: () -> Unit,
+    onMyRegistrations: (() -> Unit)? = null,
     isSigningOut: Boolean = false,
 ) {
     BackHandler(enabled = isSigningOut) {}
@@ -72,6 +73,15 @@ fun ProfileScreen(
                     Text(stringResource(R.string.auth_sign_in))
                 }
             } else {
+                Text(user.nickname, style = MaterialTheme.typography.headlineSmall)
+                Text(user.email, style = MaterialTheme.typography.bodyMedium)
+                if (onMyRegistrations != null) {
+                    Button(onClick = onMyRegistrations) {
+                        Text(stringResource(R.string.my_registrations_title))
+                    }
+                }
+                OutlinedButton(onClick = onSignOut) {
+                    Text(stringResource(R.string.profile_sign_out))
                 OutlinedCard(Modifier.widthIn(max = 440.dp).fillMaxWidth()) {
                     Column(
                         modifier = Modifier.padding(20.dp),
