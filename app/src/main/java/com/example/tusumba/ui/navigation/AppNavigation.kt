@@ -105,7 +105,6 @@ fun AppNavigation(
                 onBackClick = { navController.popBackStack() },
                 onEventClick = { eventId -> navController.navigate(Screen.EventDetail.createRoute(eventId)) },
                 onSignIn = { navController.navigate(Screen.SignIn.route) { launchSingleTop = true } },
-                isSigningOut = authViewModel.isSigningOut,
             )
         }
         composable(Screen.SignIn.route) {
