@@ -40,6 +40,7 @@ fun ProfileScreen(
     onBackClick: () -> Unit,
     onSignIn: () -> Unit,
     onSignOut: () -> Unit,
+    onMyRegistrations: (() -> Unit)? = null,
     isSigningOut: Boolean = false,
 ) {
     BackHandler(enabled = isSigningOut) {}
@@ -72,7 +73,11 @@ fun ProfileScreen(
                     Text(stringResource(R.string.auth_sign_in))
                 }
             } else {
-                OutlinedCard(Modifier.widthIn(max = 440.dp).fillMaxWidth()) {
+                OutlinedCard(
+                    modifier = Modifier
+                        .widthIn(max = 440.dp)
+                        .fillMaxWidth()
+                ) {
                     Column(
                         modifier = Modifier.padding(20.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -87,13 +92,24 @@ fun ProfileScreen(
                             GlobalRole.USER -> R.string.profile_role_user
                             GlobalRole.MODERATOR -> R.string.profile_role_moderator
                         }
-                        ProfileField(stringResource(R.string.profile_role), stringResource(role))
+                        ProfileField(
+                            stringResource(R.string.profile_role),
+                            stringResource(role),
+                        )
                     }
                 }
+
+                if (onMyRegistrations != null) {
+                    Button(onClick = onMyRegistrations) {
+                        Text(stringResource(R.string.my_registrations_title))
+                    }
+                }
+
                 OutlinedButton(onClick = onSignOut, enabled = !isSigningOut) {
                     Text(
                         text = stringResource(
-                            if (isSigningOut) R.string.profile_signing_out else R.string.profile_sign_out
+                            if (isSigningOut) R.string.profile_signing_out
+                            else R.string.profile_sign_out
                         ),
                         modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                     )

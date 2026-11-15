@@ -1,0 +1,19 @@
+<resources>
+    <string name="my_registrations_title">Мои записи</string>
+    <string name="my_registrations_empty">У вас пока нет билетов и записей.</string>
+    <string name="my_registrations_error">Не удалось загрузить билеты и записи. Попробуйте позже.</string>
+    <string name="my_registrations_sign_in">Войдите, чтобы посмотреть свои записи.</string>
+    <string name="my_registrations_retry">Повторить</string>
+    <string name="my_registrations_load_more">Показать ещё</string>
+    <string name="my_registrations_ticket">Билет</string>
+    <string name="my_registrations_event_fallback">Мероприятие</string>
+    <string name="my_registrations_event_unavailable">Сведения о мероприятии пока не загружены.</string>
+    <string name="my_registrations_details">Подробнее</string>
+    <string name="my_registrations_cancel">Отменить запись</string>
+    <string name="my_registrations_cancelling">Отмена…</string>
+    <string name="my_registrations_cancel_confirmation">Отменить запись?</string>
+    <string name="my_registrations_keep">Оставить запись</string>
+    <string name="my_registrations_cancel_closed">Запись на мероприятие закрыта.</string>
+    <string name="my_registrations_cancel_ticket">Запись по билету нельзя отменить.</string>
+    <string name="my_registrations_cancel_error">Не удалось отменить запись. Попробуйте позже.</string>
+</resources>

@@ -1,0 +1,14 @@
+<resources>
+    <string name="event_detail_title">Мероприятие</string>
+    <string name="event_detail_unavailable">Мероприятие недоступно.</string>
+    <string name="event_detail_error">Не удалось загрузить мероприятие. Попробуйте позже.</string>
+    <string name="event_detail_retry">Повторить</string>
+    <string name="event_detail_paid">Платное мероприятие</string>
+    <string name="event_registration_paid">Запись доступна для бесплатных мероприятий.</string>
+    <string name="event_registration_closed">Запись на мероприятие закрыта.</string>
+    <string name="event_registration_sign_in_required">Войдите, чтобы сохранить мероприятие в личном кабинете.</string>
+    <string name="event_registration_failed">Не удалось сохранить запись. Попробуйте позже.</string>
+    <string name="event_registration_going">Пойду</string>
+    <string name="event_registration_interested">Интересно</string>
+    <string name="event_registration_saved">Запись сохранена: «%1$s»</string>
+</resources>
