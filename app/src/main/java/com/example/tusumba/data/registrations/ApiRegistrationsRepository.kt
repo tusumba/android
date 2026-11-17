@@ -7,6 +7,7 @@ import com.example.tusumba.data.ticketing.model.Registration
 import com.example.tusumba.data.ticketing.model.RegistrationPage
 import com.example.tusumba.data.ticketing.model.RegistrationRequest
 import com.example.tusumba.data.ticketing.model.RegistrationStatus
+import com.example.tusumba.data.ticketing.model.Visibility
 import java.io.IOException
 import java.time.DateTimeException
 import java.util.UUID
@@ -24,19 +25,49 @@ class ApiRegistrationsRepository(
     override suspend fun getRegistrations(page: Int): RegistrationPage =
         request { registrationsApi.listMyRegistrations(page = page, size = PageSize) }.requireBody()
 
-    override suspend fun getEvent(eventId: UUID): EventDetail = request {
-        val response = eventsApi.getEvent(eventId)
-        if (response.code() == 401 && response.raw().request.header("Authorization") != null) {
-            // The authenticator cleared the rejected token. Event details also allow guest access.
-            response.errorBody()?.close()
-            eventsApi.getEvent(eventId)
-        } else {
-            response
-        }
-    }.requireBody()
+    override suspend fun getEvent(eventId: UUID): EventDetail =
+        request {
+                val response = eventsApi.getEvent(eventId)
+                if (
+                    response.code() == 401 && response.raw().request.header("Authorization") != null
+                ) {
+                    // The authenticator cleared the rejected token. Event details also allow guest
+                    // access.
+                    response.errorBody()?.close()
+                    eventsApi.getEvent(eventId)
+                } else {
+                    response
+                }
+            }
+            .requireBody()
 
-    override suspend fun saveRegistration(eventId: UUID, status: RegistrationStatus): Registration =
-        request { registrationsApi.registerForEvent(eventId, RegistrationRequest(status)) }.requireBody()
+    override suspend fun getRegistration(eventId: UUID): Registration? {
+        var page = 1
+        while (true) {
+            val result = getRegistrations(page)
+            if (result.page != page || result.propertySize !in 1..100 || result.total < 0) {
+                throw IOException("Invalid registration pagination")
+            }
+            result.items
+                .firstOrNull { it.eventId == eventId }
+                ?.let {
+                    return it
+                }
+            if (result.items.isEmpty() || page.toLong() * result.propertySize >= result.total)
+                return null
+            page++
+        }
+    }
+
+    override suspend fun saveRegistration(
+        eventId: UUID,
+        status: RegistrationStatus,
+        visibility: Visibility?,
+    ): Registration =
+        request {
+                registrationsApi.registerForEvent(eventId, RegistrationRequest(status, visibility))
+            }
+            .requireBody()
 
     override suspend fun cancelRegistration(eventId: UUID) {
         val response = request { registrationsApi.cancelRegistration(eventId) }
@@ -61,18 +92,19 @@ class ApiRegistrationsRepository(
     }
 
     private fun Response<*>.toApiException(): RegistrationApiException {
-        val errorCode = try {
-            errorBody()?.use { body ->
-                val envelope = Json.parseToJsonElement(body.string()) as? JsonObject
-                val error = envelope?.get("error") as? JsonObject
-                val code = error?.get("code") as? JsonPrimitive
-                code?.takeIf { it.isString }?.content
+        val errorCode =
+            try {
+                errorBody()?.use { body ->
+                    val envelope = Json.parseToJsonElement(body.string()) as? JsonObject
+                    val error = envelope?.get("error") as? JsonObject
+                    val code = error?.get("code") as? JsonPrimitive
+                    code?.takeIf { it.isString }?.content
+                }
+            } catch (_: IllegalArgumentException) {
+                null
+            } catch (_: IOException) {
+                null
             }
-        } catch (_: IllegalArgumentException) {
-            null
-        } catch (_: IOException) {
-            null
-        }
         return RegistrationApiException(code(), errorCode)
     }
 }
