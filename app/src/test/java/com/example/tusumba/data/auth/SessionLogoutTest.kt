@@ -3,6 +3,7 @@ package com.example.tusumba.data.auth
 import com.example.tusumba.data.local.TokenManager
 import com.example.tusumba.data.network.AuthInterceptor
 import com.example.tusumba.data.network.TokenAuthenticator
+import com.example.tusumba.data.identity.api.DefaultApi
 import com.example.tusumba.di.LogoutModule
 import com.example.tusumba.di.NetworkModule
 import io.mockk.Runs
@@ -28,6 +29,7 @@ import org.junit.Before
 import org.junit.Test
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
+import javax.inject.Provider
 
 class SessionLogoutTest {
     private lateinit var server: MockWebServer
@@ -45,7 +47,7 @@ class SessionLogoutTest {
 
         val sharedClient = NetworkModule.provideOkHttpClient(
             AuthInterceptor(tokenManager),
-            TokenAuthenticator(tokenManager),
+            TokenAuthenticator(tokenManager, mockk<Provider<DefaultApi>>(relaxed = true)),
         )
         val retrofit = Retrofit.Builder()
             .baseUrl(server.url("/"))

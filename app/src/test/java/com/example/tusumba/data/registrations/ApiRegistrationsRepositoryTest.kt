@@ -1,6 +1,7 @@
 package com.example.tusumba.data.registrations
 
 import com.example.tusumba.data.local.TokenManager
+import com.example.tusumba.data.identity.api.DefaultApi
 import com.example.tusumba.data.network.AuthInterceptor
 import com.example.tusumba.data.network.TokenAuthenticator
 import com.example.tusumba.data.ticketing.model.RegistrationSource
@@ -28,6 +29,7 @@ import org.junit.Before
 import org.junit.Test
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
+import javax.inject.Provider
 
 class ApiRegistrationsRepositoryTest {
     private lateinit var server: MockWebServer
@@ -45,11 +47,12 @@ class ApiRegistrationsRepositoryTest {
         var token: String? = "test-access-token"
         val tokenManager = mockk<TokenManager>()
         every { tokenManager.getAccessToken() } answers { token }
+        every { tokenManager.getRefreshToken() } returns null
         every { tokenManager.clearTokens() } answers { token = null }
         val client =
             NetworkModule.provideOkHttpClient(
                 AuthInterceptor(tokenManager),
-                TokenAuthenticator(tokenManager),
+                TokenAuthenticator(tokenManager, mockk<Provider<DefaultApi>>(relaxed = true)),
             )
         val retrofit =
             Retrofit.Builder()

@@ -30,11 +30,31 @@ class AuthViewModel @Inject constructor(
     private val logoutEvents = Channel<Unit>(Channel.BUFFERED)
     val signedOut = logoutEvents.receiveAsFlow()
 
-    suspend fun signIn(login: String, password: String): AuthResult =
-        recordSession(repository.signIn(login, password))
+    init {
+        user = tokenManager.getUser()
+    }
 
-    suspend fun register(email: String, password: String, nickname: String): AuthResult =
-        recordSession(repository.register(email, password, nickname))
+    suspend fun signIn(login: String, password: String): AuthResult {
+        val result = repository.signIn(login, password)
+
+        if (result is AuthResult.Success) {
+            user = result.user
+            tokenManager.saveUser(result.user)
+        }
+
+        return result
+    }
+
+    suspend fun register(email: String, password: String, nickname: String): AuthResult {
+        val result = repository.register(email, password, nickname)
+
+        if (result is AuthResult.Success) {
+            user = result.user
+            tokenManager.saveUser(result.user)
+        }
+
+        return result
+    }
 
     fun signOut() {
         if (isSigningOut) return
