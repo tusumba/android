@@ -249,6 +249,7 @@ class ApiClubsRepositoryTest {
         var accessToken: String? = "mock-access-token"
         val tokenManager = mockk<TokenManager>()
         every { tokenManager.getAccessToken() } answers { accessToken }
+        every { tokenManager.getRefreshToken() } returns null
         every { tokenManager.clearTokens() } answers { accessToken = null }
         return createRepository(
             NetworkModule.provideOkHttpClient(

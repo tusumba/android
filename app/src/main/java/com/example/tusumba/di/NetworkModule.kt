@@ -2,6 +2,7 @@ package com.example.tusumba.di
 
 import com.example.tusumba.BuildConfig
 import com.example.tusumba.data.network.AuthInterceptor
+import com.example.tusumba.data.network.LocalDateSerializer
 import com.example.tusumba.data.network.OffsetDateTimeSerializer
 import com.example.tusumba.data.network.TokenAuthenticator
 import com.example.tusumba.data.network.UUIDSerializer
@@ -15,6 +16,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
+import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.util.UUID
 import javax.inject.Singleton
@@ -32,6 +34,7 @@ object NetworkModule {
         explicitNulls = false
         serializersModule = SerializersModule {
             contextual(UUID::class, UUIDSerializer)
+            contextual(LocalDate::class, LocalDateSerializer)
             contextual(OffsetDateTime::class, OffsetDateTimeSerializer)
         }
     }

@@ -47,6 +47,7 @@ class ApiRegistrationsRepositoryTest {
         var token: String? = "test-access-token"
         val tokenManager = mockk<TokenManager>()
         every { tokenManager.getAccessToken() } answers { token }
+        every { tokenManager.getRefreshToken() } returns null
         every { tokenManager.clearTokens() } answers { token = null }
         val client = NetworkModule.provideOkHttpClient(
             AuthInterceptor(tokenManager),

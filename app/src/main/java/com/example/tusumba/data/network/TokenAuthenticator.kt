@@ -20,7 +20,10 @@ class TokenAuthenticator @Inject constructor(
 
     override fun authenticate(route: Route?, response: Response): Request? {
         if (responseCount(response) >= 2) return null
-        val refreshToken = tokenManager.getRefreshToken() ?: return null
+        val refreshToken = tokenManager.getRefreshToken() ?: run {
+            tokenManager.clearTokens()
+            return null
+        }
 
         synchronized(refreshLock) {
             val currentToken = tokenManager.getAccessToken()
