@@ -3,6 +3,7 @@ package com.example.tusumba.data.clubs
 import com.example.tusumba.data.events.api.ClubsApi
 import com.example.tusumba.data.events.api.EventsApi
 import com.example.tusumba.data.events.model.EventStatus
+import com.example.tusumba.data.identity.api.DefaultApi
 import com.example.tusumba.data.local.TokenManager
 import com.example.tusumba.data.network.AuthInterceptor
 import com.example.tusumba.data.network.TokenAuthenticator
@@ -27,6 +28,7 @@ import org.junit.Test
 import retrofit2.HttpException
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
+import javax.inject.Provider
 
 class ApiClubsRepositoryTest {
     private lateinit var server: MockWebServer
@@ -249,7 +251,10 @@ class ApiClubsRepositoryTest {
         every { tokenManager.getAccessToken() } answers { accessToken }
         every { tokenManager.clearTokens() } answers { accessToken = null }
         return createRepository(
-            NetworkModule.provideOkHttpClient(AuthInterceptor(tokenManager), TokenAuthenticator(tokenManager))
+            NetworkModule.provideOkHttpClient(
+                AuthInterceptor(tokenManager),
+                TokenAuthenticator(tokenManager, mockk<Provider<DefaultApi>>(relaxed = true)),
+            )
         )
     }
 
