@@ -190,7 +190,9 @@ class MyRegistrationsViewModelTest {
 
         override suspend fun getEvent(eventId: UUID): EventDetail = eventLookup(eventId)
 
-        override suspend fun saveRegistration(eventId: UUID, status: RegistrationStatus): Registration = error("Unused")
+        override suspend fun getRegistration(eventId: UUID): Registration? = registrations.firstOrNull { it.eventId == eventId }
+
+        override suspend fun saveRegistration(eventId: UUID, status: RegistrationStatus, visibility: Visibility?): Registration = error("Unused")
 
         override suspend fun cancelRegistration(eventId: UUID) {
             cancellations += eventId

@@ -4,6 +4,7 @@ import com.example.tusumba.data.events.model.EventDetail
 import com.example.tusumba.data.ticketing.model.Registration
 import com.example.tusumba.data.ticketing.model.RegistrationPage
 import com.example.tusumba.data.ticketing.model.RegistrationStatus
+import com.example.tusumba.data.ticketing.model.Visibility
 import java.io.IOException
 import java.util.UUID
 
@@ -12,7 +13,13 @@ interface RegistrationsRepository {
 
     suspend fun getEvent(eventId: UUID): EventDetail
 
-    suspend fun saveRegistration(eventId: UUID, status: RegistrationStatus): Registration
+    suspend fun getRegistration(eventId: UUID): Registration?
+
+    suspend fun saveRegistration(
+        eventId: UUID,
+        status: RegistrationStatus,
+        visibility: Visibility? = null,
+    ): Registration
 
     suspend fun cancelRegistration(eventId: UUID)
 }

@@ -46,16 +46,24 @@ class ApiRegistrationsRepositoryTest {
         val tokenManager = mockk<TokenManager>()
         every { tokenManager.getAccessToken() } answers { token }
         every { tokenManager.clearTokens() } answers { token = null }
-        val client = NetworkModule.provideOkHttpClient(AuthInterceptor(tokenManager), TokenAuthenticator(tokenManager))
-        val retrofit = Retrofit.Builder()
-            .baseUrl(server.url("/"))
-            .client(client)
-            .addConverterFactory(NetworkModule.provideJson().asConverterFactory("application/json".toMediaType()))
-            .build()
-        repository = RegistrationsModule.provideRegistrationsRepository(
-            RegistrationsModule.provideRegistrationsApi(retrofit),
-            ClubsModule.provideEventsApi(retrofit),
-        )
+        val client =
+            NetworkModule.provideOkHttpClient(
+                AuthInterceptor(tokenManager),
+                TokenAuthenticator(tokenManager),
+            )
+        val retrofit =
+            Retrofit.Builder()
+                .baseUrl(server.url("/"))
+                .client(client)
+                .addConverterFactory(
+                    NetworkModule.provideJson().asConverterFactory("application/json".toMediaType())
+                )
+                .build()
+        repository =
+            RegistrationsModule.provideRegistrationsRepository(
+                RegistrationsModule.provideRegistrationsApi(retrofit),
+                ClubsModule.provideEventsApi(retrofit),
+            )
     }
 
     @After
@@ -65,9 +73,11 @@ class ApiRegistrationsRepositoryTest {
 
     @Test
     fun loadsAuthenticatedRegistrationPageAndDecodesItsFields() = runTest {
-        server.enqueue(jsonResponse(
-            """{"items":[${registrationJson("interested")}],"total":21,"page":2,"size":20}"""
-        ))
+        server.enqueue(
+            jsonResponse(
+                """{"items":[${registrationJson("interested")}],"total":21,"page":2,"size":20}"""
+            )
+        )
 
         val page = repository.getRegistrations(page = 2)
 
@@ -93,11 +103,16 @@ class ApiRegistrationsRepositoryTest {
     @Test
     fun retriesPublicEventDetailOnceAfterRejectedToken() = runTest {
         server.enqueue(errorResponse(401, "invalid_token"))
-        server.enqueue(jsonResponse("""
+        server.enqueue(
+            jsonResponse(
+                """
             {"id":"$eventId","title":"Игротека","date":"2026-12-02","place_address":"НГУ",
              "is_free":true,"status":"confirmed","description":"Настольные игры",
              "organizer":{"type":"user"},"current_version_id":"$versionId","version_no":1}
-        """.trimIndent()))
+        """
+                    .trimIndent()
+            )
+        )
 
         val event = repository.getEvent(eventId)
 
@@ -132,7 +147,8 @@ class ApiRegistrationsRepositoryTest {
         server.enqueue(errorResponse(401, "token_expired"))
         server.enqueue(jsonResponse("""{"items":[],"total":0,"page":1,"size":20}"""))
 
-        val error = assertFailsWith<RegistrationApiException> { repository.getRegistrations(page = 1) }
+        val error =
+            assertFailsWith<RegistrationApiException> { repository.getRegistrations(page = 1) }
 
         assertEquals(401, error.statusCode)
         assertEquals("token_expired", error.errorCode)
@@ -164,6 +180,69 @@ class ApiRegistrationsRepositoryTest {
     }
 
     @Test
+    fun savesEveryVisibilityTogetherWithTheSelectedStatus() = runTest {
+        for (visibility in Visibility.entries) {
+            server.enqueue(
+                jsonResponse(
+                    registrationJson("interested").replace("friends_only", visibility.value)
+                )
+            )
+            val saved =
+                repository.saveRegistration(eventId, RegistrationStatus.interested, visibility)
+            val request = takeRequest()
+            assertEquals("PUT", request.method)
+            assertEquals(registrationPath, request.path)
+            assertEquals(authorization, request.getHeader("Authorization"))
+            assertEquals(
+                Json.parseToJsonElement(
+                    """{"status":"interested","visibility":"${visibility.value}"}"""
+                ),
+                Json.parseToJsonElement(request.body.readUtf8()),
+            )
+            assertEquals(visibility, saved.visibility)
+        }
+    }
+
+    @Test
+    fun findsAnExistingRegistrationBeyondTheFirstPage() = runTest {
+        val other = UUID.randomUUID()
+        server.enqueue(
+            jsonResponse(
+                """{"items":[${registrationJson("going").replace(eventId.toString(), other.toString())}],"total":21,"page":1,"size":20}"""
+            )
+        )
+        server.enqueue(
+            jsonResponse(
+                """{"items":[${registrationJson("interested")}],"total":21,"page":2,"size":20}"""
+            )
+        )
+
+        val current = requireNotNull(repository.getRegistration(eventId))
+
+        assertEquals(RegistrationStatus.interested, current.status)
+        assertEquals(Visibility.friends_only, current.visibility)
+        assertEquals("1", takeRequest().requestUrl?.queryParameter("page"))
+        assertEquals("2", takeRequest().requestUrl?.queryParameter("page"))
+        assertEquals(2, server.requestCount)
+    }
+
+    @Test
+    fun absenceIsDifferentFromARequestFailure() = runTest {
+        server.enqueue(jsonResponse("""{"items":[],"total":0,"page":1,"size":20}"""))
+        assertNull(repository.getRegistration(eventId))
+        server.enqueue(errorResponse(503, "unavailable"))
+        assertFailsWith<RegistrationApiException> { repository.getRegistration(eventId) }
+        assertEquals(2, server.requestCount)
+    }
+
+    @Test
+    fun rejectsInvalidPaginationInsteadOfRepeatingTheSamePageForever() = runTest {
+        server.enqueue(jsonResponse("""{"items":[],"total":21,"page":2,"size":0}"""))
+        assertFailsWith<java.io.IOException> { repository.getRegistration(eventId) }
+        assertEquals(1, server.requestCount)
+    }
+
+    @Test
     fun cancellationAcceptsNoContentAndAnAlreadyRemovedRegistration() = runTest {
         server.enqueue(MockResponse().setResponseCode(204))
         server.enqueue(errorResponse(404, "registration_not_found"))
@@ -185,8 +264,15 @@ class ApiRegistrationsRepositoryTest {
         server.enqueue(jsonResponse("""{"error":{"code":123}}""", status = 404))
         server.enqueue(jsonResponse("<html>Unavailable</html>", status = 503))
 
-        for ((status, code) in listOf(409 to "registration_from_ticket", 404 to "event_not_found", 404 to null, 503 to null)) {
-            val error = assertFailsWith<RegistrationApiException> { repository.cancelRegistration(eventId) }
+        for ((status, code) in
+            listOf(
+                409 to "registration_from_ticket",
+                404 to "event_not_found",
+                404 to null,
+                503 to null,
+            )) {
+            val error =
+                assertFailsWith<RegistrationApiException> { repository.cancelRegistration(eventId) }
             assertEquals(status, error.statusCode)
             assertEquals(code, error.errorCode)
         }
@@ -195,16 +281,19 @@ class ApiRegistrationsRepositoryTest {
 
     private fun takeRequest() = requireNotNull(server.takeRequest(5, TimeUnit.SECONDS))
 
-    private fun registrationJson(status: String) = """
+    private fun registrationJson(status: String) =
+        """
         {"id":"$registrationId","event_id":"$eventId","status":"$status","visibility":"friends_only",
          "source":"free_signup","created_at":"2026-11-11T08:00:00Z"}
-    """.trimIndent()
+    """
+            .trimIndent()
 
     private fun errorResponse(status: Int, code: String) =
         jsonResponse("""{"error":{"code":"$code","message":"Ошибка"}}""", status)
 
-    private fun jsonResponse(body: String, status: Int = 200) = MockResponse()
-        .setResponseCode(status)
-        .setHeader("Content-Type", "application/json")
-        .setBody(body)
+    private fun jsonResponse(body: String, status: Int = 200) =
+        MockResponse()
+            .setResponseCode(status)
+            .setHeader("Content-Type", "application/json")
+            .setBody(body)
 }
