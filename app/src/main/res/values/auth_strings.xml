@@ -35,6 +35,11 @@
     <string name="auth_sign_in_unavailable">Не удалось войти. Попробуйте позже.</string>
     <string name="auth_footer">© Tusumba</string>
     <string name="profile_title">Профиль</string>
+    <string name="profile_email">Электронная почта</string>
+    <string name="profile_role">Роль</string>
+    <string name="profile_role_user">Пользователь</string>
+    <string name="profile_role_moderator">Модератор</string>
     <string name="profile_guest">Войдите в аккаунт, чтобы открыть личный кабинет</string>
     <string name="profile_sign_out">Выйти из аккаунта</string>
+    <string name="profile_signing_out">Выходим…</string>
 </resources>

@@ -1,0 +1,4 @@
+<resources>
+    <string name="content_loading">Загрузка</string>
+    <string name="content_retry">Повторить</string>
+</resources>
