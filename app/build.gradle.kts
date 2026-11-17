@@ -11,11 +11,6 @@ plugins {
     id("org.openapi.generator")
 }
 
-val catalogMockScenario = providers.gradleProperty("catalogMockScenario").orElse("success").get()
-require(catalogMockScenario in setOf("success", "empty", "error")) {
-    "catalogMockScenario must be success, empty or error"
-}
-
 val debugApiBaseUrl = providers.gradleProperty("apiBaseUrl")
     .orElse("http://10.0.2.2:8080/").get().trim().let {
         if (it.endsWith('/')) it else "$it/"
@@ -39,7 +34,6 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
-        buildConfigField("String", "CATALOG_MOCK_SCENARIO", "\"$catalogMockScenario\"")
     }
 
     buildTypes {
