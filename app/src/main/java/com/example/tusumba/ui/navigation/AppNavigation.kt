@@ -1,6 +1,7 @@
 package com.example.tusumba.ui.navigation
 
 import android.net.Uri
+import com.example.tusumba.ui.applications.ApplicationsScreen
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
@@ -28,6 +29,11 @@ sealed class Screen(val route: String) {
     }
     data object Profile : Screen("profile")
     data object MyRegistrations : Screen("my_registrations")
+    data object MyApplications : Screen("my_applications")
+    data object NewApplication : Screen("new_application")
+    data object ApplicationDetail : Screen("application/{applicationId}") {
+        fun createRoute(id: String) = "application/${Uri.encode(id)}"
+    }
     data object SignIn : Screen("sign_in")
     data object Registration : Screen("registration")
 }
@@ -94,6 +100,7 @@ fun AppNavigation(
                 onBackClick = { navController.popBackStack() },
                 onSignIn = { navController.navigate(Screen.SignIn.route) { launchSingleTop = true } },
                 onSignOut = authViewModel::signOut,
+                onMyApplications = { navController.navigate(Screen.MyApplications.route) { launchSingleTop = true } },
                 onMyRegistrations = {
                     navController.navigate(Screen.MyRegistrations.route) { launchSingleTop = true }
                 },
@@ -106,6 +113,31 @@ fun AppNavigation(
                 onEventClick = { eventId -> navController.navigate(Screen.EventDetail.createRoute(eventId)) },
                 onSignIn = { navController.navigate(Screen.SignIn.route) { launchSingleTop = true } },
             )
+        }
+        composable(Screen.MyApplications.route) {
+            ApplicationsScreen(userId = authViewModel.user?.id,
+                onBack = { navController.popBackStack() },
+                onSignIn = { navController.navigate(Screen.SignIn.route) },
+                onCreate = { navController.navigate(Screen.NewApplication.route) },
+                onApplication = { navController.navigate(Screen.ApplicationDetail.createRoute(it)) })
+        }
+        composable(Screen.NewApplication.route) {
+            ApplicationsScreen(userId = authViewModel.user?.id, mode = "form",
+                onBack = { navController.popBackStack() },
+                onSignIn = { navController.navigate(Screen.SignIn.route) },
+                onApplication = { id ->
+                    navController.navigate(Screen.ApplicationDetail.createRoute(id)) {
+                        popUpTo(Screen.NewApplication.route) { inclusive = true }
+                    }
+                })
+        }
+        composable(Screen.ApplicationDetail.route) { entry ->
+            ApplicationsScreen(userId = authViewModel.user?.id, mode = "detail",
+                applicationId = entry.arguments?.getString("applicationId"),
+                onBack = { navController.popBackStack() },
+                onSignIn = { navController.navigate(Screen.SignIn.route) },
+                onObject = { id, event -> navController.navigate(
+                    if (event) Screen.EventDetail.createRoute(id) else Screen.ClubDetail.createRoute(id)) })
         }
         composable(Screen.SignIn.route) {
             AuthScreen(

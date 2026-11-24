@@ -42,6 +42,7 @@ fun ProfileScreen(
     onSignOut: () -> Unit,
     onMyRegistrations: (() -> Unit)? = null,
     isSigningOut: Boolean = false,
+    onMyApplications: (() -> Unit)? = null,
 ) {
     BackHandler(enabled = isSigningOut) {}
     Scaffold(
@@ -103,6 +104,10 @@ fun ProfileScreen(
                     Button(onClick = onMyRegistrations) {
                         Text(stringResource(R.string.my_registrations_title))
                     }
+                }
+
+                if (onMyApplications != null) {
+                    Button(onClick = onMyApplications) { Text("Мои заявки") }
                 }
 
                 OutlinedButton(onClick = onSignOut, enabled = !isSigningOut) {

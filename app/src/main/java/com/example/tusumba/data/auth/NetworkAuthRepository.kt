@@ -25,7 +25,7 @@ class NetworkAuthRepository @Inject constructor(
                         id = body.user.id.toString(),
                         email = body.user.email,
                         nickname = body.user.nickname,
-                        globalRole = if (body.user.globalRole.name == "MODERATOR") GlobalRole.MODERATOR else GlobalRole.USER
+                        globalRole = if (body.user.globalRole.value == "moderator") GlobalRole.MODERATOR else GlobalRole.USER
                     )
                 )
             } else {
@@ -53,7 +53,7 @@ class NetworkAuthRepository @Inject constructor(
                         id = body.user.id.toString(),
                         email = body.user.email,
                         nickname = body.user.nickname,
-                        globalRole = if (body.user.globalRole.name == "MODERATOR") GlobalRole.MODERATOR else GlobalRole.USER
+                        globalRole = if (body.user.globalRole.value == "moderator") GlobalRole.MODERATOR else GlobalRole.USER
                     )
                 )
             } else {
