@@ -38,7 +38,7 @@ android {
 
     buildTypes {
         debug {
-            // Для эмулятора localhost компьютера — это 10.0.2.2.
+            // Wi-Fi адрес компьютера с Docker; можно переопределить через -PapiBaseUrl.
             buildConfigField("String", "BASE_URL", "\"$debugApiBaseUrl\"")
         }
         release {
