@@ -1,6 +1,7 @@
 package com.example.tusumba
 
 import android.os.Bundle
+import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -10,6 +11,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.tusumba.ui.auth.authColorScheme
@@ -17,12 +21,16 @@ import com.example.tusumba.ui.catalog.catalogColorScheme
 import com.example.tusumba.ui.navigation.AppNavigation
 import com.example.tusumba.ui.navigation.Screen
 import com.example.tusumba.ui.theme.TusumbaTheme
+import com.example.tusumba.notifications.PushDestination
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    private var notificationDestination by mutableStateOf<PushDestination?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (savedInstanceState == null) notificationDestination = PushDestination.from(intent)
         enableEdgeToEdge()
         setContent {
             TusumbaTheme {
@@ -40,10 +48,18 @@ class MainActivity : ComponentActivity() {
                 ) { innerPadding ->
                     AppNavigation(
                         navController = navController,
+                        notificationDestination = notificationDestination,
+                        onNotificationHandled = { notificationDestination = null },
                         modifier = Modifier.padding(innerPadding).consumeWindowInsets(innerPadding)
                     )
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        notificationDestination = PushDestination.from(intent)
     }
 }

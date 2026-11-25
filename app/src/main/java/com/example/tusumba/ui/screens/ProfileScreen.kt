@@ -42,6 +42,7 @@ fun ProfileScreen(
     onSignOut: () -> Unit,
     onMyRegistrations: (() -> Unit)? = null,
     isSigningOut: Boolean = false,
+    notificationSettings: (@Composable () -> Unit)? = null,
 ) {
     BackHandler(enabled = isSigningOut) {}
     Scaffold(
@@ -104,6 +105,8 @@ fun ProfileScreen(
                         Text(stringResource(R.string.my_registrations_title))
                     }
                 }
+
+                notificationSettings?.invoke()
 
                 OutlinedButton(onClick = onSignOut, enabled = !isSigningOut) {
                     Text(
