@@ -11,6 +11,7 @@ captures/
 *.aab
 *.keystore
 *.jks
+google-services.json
 
 # IDE и ОС
 .idea/

@@ -10,6 +10,7 @@ import com.example.tusumba.data.auth.AuthResult
 import com.example.tusumba.data.auth.AuthUser
 import com.example.tusumba.data.auth.SessionLogout
 import com.example.tusumba.data.local.TokenManager
+import com.example.tusumba.notifications.PushSession
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.channels.Channel
@@ -21,6 +22,7 @@ class AuthViewModel @Inject constructor(
     private val repository: AuthRepository,
     private val tokenManager: TokenManager,
     private val sessionLogout: SessionLogout,
+    private val pushSession: PushSession,
 ) : ViewModel() {
     var user by mutableStateOf<AuthUser?>(null)
         private set
@@ -40,6 +42,7 @@ class AuthViewModel @Inject constructor(
         if (result is AuthResult.Success) {
             user = result.user
             tokenManager.saveUser(result.user)
+            pushSession.signedIn()
         }
 
         return result
@@ -51,6 +54,7 @@ class AuthViewModel @Inject constructor(
         if (result is AuthResult.Success) {
             user = result.user
             tokenManager.saveUser(result.user)
+            pushSession.signedIn()
         }
 
         return result
@@ -61,7 +65,11 @@ class AuthViewModel @Inject constructor(
         isSigningOut = true
         viewModelScope.launch {
             try {
-                sessionLogout()
+                try {
+                    pushSession.signOut()
+                } finally {
+                    sessionLogout()
+                }
             } finally {
                 user = null
                 isSigningOut = false

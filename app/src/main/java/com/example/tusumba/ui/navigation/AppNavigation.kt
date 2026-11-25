@@ -16,6 +16,9 @@ import com.example.tusumba.ui.registrations.MyRegistrationsScreen
 import com.example.tusumba.ui.screens.CatalogScreen
 import com.example.tusumba.ui.screens.EventDetailScreen
 import com.example.tusumba.ui.screens.ProfileScreen
+import com.example.tusumba.notifications.PushDestination
+import com.example.tusumba.ui.notifications.PushNotificationSettings
+import com.example.tusumba.ui.notifications.rememberPushNotificationActions
 
 sealed class Screen(val route: String) {
     data object Catalog : Screen("catalog")
@@ -36,8 +39,21 @@ sealed class Screen(val route: String) {
 fun AppNavigation(
     navController: NavHostController,
     modifier: Modifier = Modifier,
+    notificationDestination: PushDestination? = null,
+    onNotificationHandled: () -> Unit = {},
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
+    val notifications = rememberPushNotificationActions(authViewModel.user?.id)
+    LaunchedEffect(notificationDestination) {
+        when (val destination = notificationDestination) {
+            is PushDestination.Event -> navController.navigate(Screen.EventDetail.createRoute(destination.id.toString())) {
+                launchSingleTop = true
+            }
+            PushDestination.Registrations -> navController.navigate(Screen.MyRegistrations.route) { launchSingleTop = true }
+            null -> return@LaunchedEffect
+        }
+        onNotificationHandled()
+    }
     LaunchedEffect(navController, authViewModel) {
         authViewModel.signedOut.collect {
             navController.navigate(Screen.SignIn.route) { launchSingleTop = true }
@@ -94,6 +110,8 @@ fun AppNavigation(
                 onBackClick = { navController.popBackStack() },
                 onSignIn = { navController.navigate(Screen.SignIn.route) { launchSingleTop = true } },
                 onSignOut = authViewModel::signOut,
+                isSigningOut = authViewModel.isSigningOut,
+                notificationSettings = { PushNotificationSettings(notifications, enabled = !authViewModel.isSigningOut) },
                 onMyRegistrations = {
                     navController.navigate(Screen.MyRegistrations.route) { launchSingleTop = true }
                 },

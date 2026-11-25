@@ -11,6 +11,11 @@ plugins {
     id("org.openapi.generator")
 }
 
+// Firebase is configured locally or by CI. Ordinary builds also work without a Firebase project.
+if (file("google-services.json").isFile) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 val debugApiBaseUrl = providers.gradleProperty("apiBaseUrl")
     .orElse("http://10.0.2.2:8080/").get().trim().let {
         if (it.endsWith('/')) it else "$it/"
@@ -85,6 +90,8 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material.icons.core)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.firebase.messaging)
+    implementation(libs.androidx.work.runtime.ktx)
 
     // Hilt
     implementation(libs.hilt.android)
@@ -104,6 +111,7 @@ dependencies {
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.ui.test.junit4)
     testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.work.testing)
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.0")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     testImplementation("io.mockk:mockk:1.13.10")

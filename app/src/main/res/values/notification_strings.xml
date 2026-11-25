@@ -1,0 +1,12 @@
+<resources>
+    <string name="notifications_title">Уведомления</string>
+    <string name="notifications_channel_name">Мероприятия и напоминания</string>
+    <string name="notifications_enabled">Уведомления разрешены на устройстве.</string>
+    <string name="notifications_disabled">Уведомления отключены.</string>
+    <string name="notifications_permission_required">Разрешите уведомления на устройстве.</string>
+    <string name="notifications_enable">Включить уведомления</string>
+    <string name="notifications_open_settings">Открыть настройки</string>
+    <string name="notifications_unavailable">Push-уведомления пока недоступны.</string>
+    <string name="notifications_device_unsupported">Push-уведомления недоступны на этом устройстве.</string>
+    <string name="notifications_update_error">Не удалось обновить настройки уведомлений. Попробуйте позже.</string>
+</resources>
