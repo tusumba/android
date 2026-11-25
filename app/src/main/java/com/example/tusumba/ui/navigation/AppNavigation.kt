@@ -12,6 +12,7 @@ import com.example.tusumba.ui.auth.AuthScreen
 import com.example.tusumba.ui.auth.AuthViewModel
 import com.example.tusumba.ui.clubs.ClubDetailScreen
 import com.example.tusumba.ui.clubs.ClubsScreen
+import com.example.tusumba.ui.clubs.ClubEditScreen
 import com.example.tusumba.ui.registrations.MyRegistrationsScreen
 import com.example.tusumba.ui.screens.CatalogScreen
 import com.example.tusumba.ui.screens.EventDetailScreen
@@ -22,6 +23,9 @@ sealed class Screen(val route: String) {
     data object Clubs : Screen("clubs")
     data object ClubDetail : Screen("club_detail/{clubId}") {
         fun createRoute(clubId: String) = "club_detail/${Uri.encode(clubId)}"
+    }
+    data object ClubEdit : Screen("club_edit/{clubId}") {
+        fun createRoute(clubId: String) = "club_edit/${Uri.encode(clubId)}"
     }
     data object EventDetail : Screen("event_detail/{eventId}") {
         fun createRoute(eventId: String) = "event_detail/${Uri.encode(eventId)}"
@@ -70,10 +74,20 @@ fun AppNavigation(
         }
         composable(Screen.ClubDetail.route) {
             ClubDetailScreen(
+                userId = authViewModel.user?.id,
+                onEditClick = { clubId -> navController.navigate(Screen.ClubEdit.createRoute(clubId)) },
                 onBackClick = { navController.popBackStack() },
                 onEventClick = { eventId ->
                     navController.navigate(Screen.EventDetail.createRoute(eventId))
                 },
+            )
+        }
+        composable(Screen.ClubEdit.route) {
+            ClubEditScreen(
+                userId = authViewModel.user?.id,
+                onCancel = { navController.popBackStack() },
+                onSaved = { navController.popBackStack() },
+                onSignIn = { navController.navigate(Screen.SignIn.route) { launchSingleTop = true } },
             )
         }
         composable(Screen.EventDetail.route) {

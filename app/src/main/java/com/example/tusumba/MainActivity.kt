@@ -31,6 +31,7 @@ class MainActivity : ComponentActivity() {
                 val background = when (route) {
                     Screen.SignIn.route, Screen.Registration.route -> authColorScheme().background
                     Screen.Clubs.route, Screen.ClubDetail.route,
+                    Screen.ClubEdit.route,
                     Screen.EventDetail.route, Screen.MyRegistrations.route -> catalogColorScheme().surface
                     else -> MaterialTheme.colorScheme.background
                 }

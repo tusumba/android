@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.example.tusumba.R
 import com.example.tusumba.data.catalog.CatalogEvent
 import com.example.tusumba.data.catalog.EventStatus
@@ -43,8 +44,14 @@ fun ClubDetailScreen(
     onBackClick: () -> Unit,
     onEventClick: (String) -> Unit,
     viewModel: ClubDetailViewModel = hiltViewModel(),
+    userId: String? = null,
+    onEditClick: ((String) -> Unit)? = null,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    LifecycleResumeEffect(userId) {
+        viewModel.onResume(userId)
+        onPauseOrDispose { }
+    }
     ClubDetailScreenContent(
         state = state,
         onBackClick = onBackClick,
@@ -52,6 +59,9 @@ fun ClubDetailScreen(
         onRetry = viewModel::refresh,
         onRetryEvents = viewModel::retryEvents,
         onLoadMoreEvents = viewModel::loadMoreEvents,
+        onEditClick = if (userId == null || onEditClick == null) null else {
+            { (state as? ClubDetailContent.Loaded)?.club?.id?.let { onEditClick(it.toString()) } }
+        },
     )
 }
 
@@ -64,6 +74,7 @@ internal fun ClubDetailScreenContent(
     onRetry: () -> Unit,
     onRetryEvents: () -> Unit,
     onLoadMoreEvents: () -> Unit,
+    onEditClick: (() -> Unit)? = null,
 ) {
     CatalogTheme {
         Scaffold(
@@ -76,6 +87,11 @@ internal fun ClubDetailScreenContent(
                         TextButton(onClick = onBackClick) { Text(stringResource(R.string.clubs_back)) }
                     },
                     windowInsets = WindowInsets(0, 0, 0, 0),
+                    actions = {
+                        if ((state as? ClubDetailContent.Loaded)?.club?.isAdmin == true && onEditClick != null) {
+                            TextButton(onEditClick, Modifier.testTag("club_edit")) { Text(stringResource(R.string.club_edit)) }
+                        }
+                    },
                 )
             },
         ) { padding ->
@@ -95,6 +111,7 @@ internal fun ClubDetailScreenContent(
                     ClubDetailContent.Error -> item { ContentError(R.string.club_page_error, onRetry) }
                     is ClubDetailContent.Loaded -> {
                         val club = state.club
+                        item(key = "cover") { ClubCover(club.photoUrl, club.currentVersionId.toString()) }
                         item(key = "title") {
                             Text(
                                 text = club.name,
