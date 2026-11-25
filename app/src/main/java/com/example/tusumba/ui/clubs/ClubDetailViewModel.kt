@@ -29,9 +29,18 @@ class ClubDetailViewModel @Inject constructor(
     private var detailJob: Job? = null
     private var eventsJob: Job? = null
     private var nextEventsPage = 1
+    private var hasResumed = false
+    private var observedUserId: String? = null
 
     init {
         refresh()
+    }
+
+    fun onResume(userId: String?) {
+        val needsRefresh = hasResumed || observedUserId != userId
+        hasResumed = true
+        observedUserId = userId
+        if (needsRefresh) refresh()
     }
 
     fun refresh() {

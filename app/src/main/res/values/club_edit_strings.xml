@@ -1,0 +1,26 @@
+<resources>
+    <string name="club_edit">Редактировать</string>
+    <string name="club_edit_title">Редактирование секции</string>
+    <string name="club_edit_save">Сохранить</string>
+    <string name="club_edit_saving">Сохраняем…</string>
+    <string name="club_edit_cancel">Отмена</string>
+    <string name="club_edit_required">Заполните обязательные поля.</string>
+    <string name="club_edit_file_invalid">Файл не соответствует требованиям.</string>
+    <string name="club_edit_save_error">Не удалось сохранить изменения. Попробуйте позже.</string>
+    <string name="club_edit_load_error">Не удалось загрузить данные для редактирования. Попробуйте позже.</string>
+    <string name="club_edit_forbidden">Редактировать страницу может только администратор этой секции.</string>
+    <string name="club_edit_sign_in">Войдите, чтобы редактировать страницу секции.</string>
+    <string name="club_edit_partial">Данные секции сохранены. Изменение фото не сохранено.</string>
+    <string name="club_edit_limit">Не более %1$d символов.</string>
+    <string name="club_edit_too_long">Проверьте длину заполненных полей.</string>
+    <string name="club_edit_duplicate_contacts">Укажите разные названия каналов связи.</string>
+    <string name="club_edit_contact_channel">Канал связи</string>
+    <string name="club_edit_contact_address">Контакт</string>
+    <string name="club_edit_add_contact">Добавить контакт</string>
+    <string name="club_edit_remove_contact">Удалить контакт</string>
+    <string name="club_photo">Фото секции</string>
+    <string name="club_default_cover">Стандартная обложка секции</string>
+    <string name="club_edit_select_photo">Выбрать фото</string>
+    <string name="club_edit_delete_photo">Удалить фото</string>
+    <string name="club_edit_photo_requirements">JPEG, PNG или WEBP, до 5 МБ.</string>
+</resources>

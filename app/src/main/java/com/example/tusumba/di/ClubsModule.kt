@@ -4,6 +4,7 @@ import com.example.tusumba.data.clubs.ApiClubsRepository
 import com.example.tusumba.data.clubs.ClubsRepository
 import com.example.tusumba.data.events.api.ClubsApi
 import com.example.tusumba.data.events.api.EventsApi
+import com.example.tusumba.data.events.api.PhotosApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -21,6 +22,10 @@ object ClubsModule {
     @Provides
     @Singleton
     fun provideEventsApi(retrofit: Retrofit): EventsApi = retrofit.create(EventsApi::class.java)
+
+    @Provides
+    @Singleton
+    fun providePhotosApi(retrofit: Retrofit): PhotosApi = retrofit.create(PhotosApi::class.java)
 
     @Provides
     @Singleton
