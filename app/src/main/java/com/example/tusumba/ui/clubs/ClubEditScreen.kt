@@ -237,7 +237,7 @@ private fun ClubEditField(
     tag: String,
     lines: Int = 2,
 ) {
-    val tooLong = value.trim().length > limit
+    val tooLong = value.trim().clubFieldLength() > limit
     OutlinedTextField(
         value, onValueChange,
         Modifier.fillMaxWidth().testTag(tag),
@@ -247,7 +247,7 @@ private fun ClubEditField(
             when {
                 missing -> Text(stringResource(R.string.club_edit_required))
                 tooLong -> Text(stringResource(R.string.club_edit_limit, limit))
-                else -> Text("${value.length} / $limit")
+                else -> Text("${value.clubFieldLength()} / $limit")
             }
         },
     )

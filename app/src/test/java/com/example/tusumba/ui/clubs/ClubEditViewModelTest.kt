@@ -114,12 +114,14 @@ class ClubEditViewModelTest {
     fun failedPhotoUploadRetainsDraftAndDoesNotRepeatAlreadySavedText() = runTest {
         val vm = viewModel(); runCurrent()
         val changes = ClubUpdate(schedule = "Суббота, 12:00")
-        coEvery { repository.updateClub(id, changes) } returns club.copy(schedule = changes.schedule, versionNo = 2)
+        val updated = club.copy(schedule = changes.schedule, description = "Обновлено другим администратором", versionNo = 2)
+        coEvery { repository.updateClub(id, changes) } returns updated
         coEvery { repository.uploadPhoto(id, photo) } throws ClubEditApiException(503)
         vm.edit { it.copy(schedule = requireNotNull(changes.schedule)) }
         vm.selectPhoto(selectedUri); runCurrent()
         vm.save(); runCurrent()
         assertTrue(vm.editing().textSaved)
+        assertEquals(updated.description, vm.editing().draft.description)
         assertEquals(ClubEditError.SaveFailed, vm.editing().error)
         assertTrue(vm.editing().photo is ClubPhotoChange.Replace)
         coEvery { repository.uploadPhoto(id, photo) } returns "/new-photo"
@@ -177,6 +179,13 @@ class ClubEditViewModelTest {
             contacts = mapOf("custom" to "  old contact value  "))
         assertEquals(null, ClubEditDraft.from(legacy).changes(legacy))
         assertFalse(ClubEditContent.Editing(legacy).dirty)
+    }
+
+    @Test
+    fun emojiCountAsOneCharacterForTheApiFieldLimits() {
+        val draft = ClubEditDraft.from(club).copy(description = "🎯".repeat(1000))
+        assertTrue(draft.valid)
+        assertFalse(draft.copy(description = draft.description + "🎯").valid)
     }
 
     private fun viewModel() = ClubEditViewModel(SavedStateHandle(mapOf("clubId" to id.toString())), repository, reader, session)

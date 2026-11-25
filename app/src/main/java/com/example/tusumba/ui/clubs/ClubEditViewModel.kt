@@ -130,7 +130,7 @@ class ClubEditViewModel @Inject constructor(
                 if (changes != null) {
                     val updated = repository.updateClub(current.club.id, changes)
                     currentCoroutineContext().ensureActive()
-                    latest = latest.copy(club = updated, textSaved = true)
+                    latest = latest.copy(club = updated, draft = ClubEditDraft.from(updated), textSaved = true)
                     mutableState.value = latest
                 }
                 if (!hasSession()) {

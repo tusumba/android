@@ -5,6 +5,8 @@ import com.example.tusumba.data.events.model.ClubDetail
 import com.example.tusumba.data.events.model.ClubUpdate
 import java.util.UUID
 
+internal fun String.clubFieldLength(): Int = codePointCount(0, length)
+
 data class ClubContactDraft(val id: String = UUID.randomUUID().toString(), val channel: String = "", val address: String = "")
 
 data class ClubEditDraft(
@@ -16,8 +18,8 @@ data class ClubEditDraft(
     val missingRequired: Boolean get() = description.isBlank() || contacts.any { it.channel.isBlank() != it.address.isBlank() }
     val duplicateContacts: Boolean get() = contacts.filter { it.channel.isNotBlank() }
         .groupingBy { it.channel.trim() }.eachCount().any { it.value > 1 }
-    val valid: Boolean get() = !missingRequired && !duplicateContacts && description.trim().length <= 1000 &&
-        meetingPlace.trim().length <= 500 && schedule.trim().length <= 1000
+    val valid: Boolean get() = !missingRequired && !duplicateContacts && description.trim().clubFieldLength() <= 1000 &&
+        meetingPlace.trim().clubFieldLength() <= 500 && schedule.trim().clubFieldLength() <= 1000
 
     fun changes(original: ClubDetail): ClubUpdate? {
         val filledContacts = contacts.filter { it.channel.isNotBlank() || it.address.isNotBlank() }
